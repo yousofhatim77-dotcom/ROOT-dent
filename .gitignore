@@ -1,0 +1,9 @@
+backup-*/
+broken-*/
+heavy-*/
+*-snapshot-*/
+admin-before-*
+script-before-*
+PROJECT_ANALYSIS.txt
+PROJECT_CODE_DUMP.txt
+*.zip
