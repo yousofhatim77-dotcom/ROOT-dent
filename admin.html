@@ -6735,6 +6735,19 @@ function renderPlatformCards() {
                                 نسخ الرابط
                             </button>
 
+                            <!-- ROOT PLATFORM DESTINATION BUTTON V1 -->
+
+                            <button
+                                class="btn secondary small"
+                                type="button"
+                                data-platform-edit-destination="${escapePlatform(
+                                    card.public_code
+                                )}"
+                            >
+                                <i class="fa-solid fa-link"></i>
+                                تغيير الوجهة
+                            </button>
+
 
                             ${
                                 free
@@ -6839,6 +6852,215 @@ function renderPlatformCards() {
             }
         );
 
+
+
+    /* ========================================================
+       ROOT PLATFORM DESTINATION HANDLER V1
+       ======================================================== */
+
+    target
+        .querySelectorAll(
+            '[data-platform-edit-destination]'
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    async () => {
+
+                        const code =
+                            button.dataset
+                                .platformEditDestination;
+
+
+                        const card =
+                            platformData.cards
+                                .find(
+                                    item =>
+                                        item.public_code ===
+                                            code
+                                );
+
+
+                        if (
+                            !card
+                        ) {
+
+                            alert(
+                                'تعذر العثور على الكارت.'
+                            );
+
+                            return;
+
+                        }
+
+
+                        const entered =
+                            prompt(
+                                'اكتب الوجهة الجديدة للكارت:\n\nلن يتغير QR أو كود الكارت.',
+                                card.destination_url ||
+                                ''
+                            );
+
+
+                        if (
+                            entered ===
+                            null
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        const destination =
+                            entered.trim();
+
+
+                        if (
+                            !destination
+                        ) {
+
+                            alert(
+                                'الرابط لا يمكن أن يكون فارغًا.'
+                            );
+
+                            return;
+
+                        }
+
+
+                        try {
+
+                            const parsed =
+                                new URL(
+                                    destination
+                                );
+
+
+                            if (
+                                parsed.protocol !==
+                                    'http:'
+                                &&
+                                parsed.protocol !==
+                                    'https:'
+                            ) {
+
+                                throw new Error(
+                                    'Invalid protocol'
+                                );
+
+                            }
+
+                        }
+                        catch {
+
+                            alert(
+                                'اكتب رابطًا صحيحًا يبدأ بـ http:// أو https://'
+                            );
+
+                            return;
+
+                        }
+
+
+                        if (
+                            !confirm(
+                                'تأكيد تغيير وجهة الكارت ' +
+                                code +
+                                ' ؟\n\n' +
+                                destination
+                            )
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        const oldHtml =
+                            button.innerHTML;
+
+
+                        try {
+
+                            button.disabled =
+                                true;
+
+
+                            button.innerHTML =
+                                '<span class="spinner"></span> جاري الحفظ';
+
+
+                            platformStatus(
+                                'جاري تغيير وجهة الكارت ' +
+                                code +
+                                '...'
+                            );
+
+
+                            await platformApi(
+                                'update_card_destination',
+                                {
+
+                                    public_code:
+                                        code,
+
+                                    destination_url:
+                                        destination
+
+                                }
+                            );
+
+
+                            await loadPlatformDashboard();
+
+
+                            platformStatus(
+                                'تم تغيير وجهة الكارت ' +
+                                code +
+                                ' بنجاح.'
+                            );
+
+                        }
+                        catch (error) {
+
+                            console.error(
+                                error
+                            );
+
+
+                            platformStatus(
+                                error.message ||
+                                'تعذر تغيير الوجهة.',
+                                true
+                            );
+
+
+                            alert(
+                                'تعذر تغيير الوجهة:\n' +
+                                (
+                                    error.message ||
+                                    'Unknown error'
+                                )
+                            );
+
+                        }
+                        finally {
+
+                            button.disabled =
+                                false;
+
+
+                            button.innerHTML =
+                                oldHtml;
+
+                        }
+
+                    };
+
+            }
+        );
 
     target
         .querySelectorAll(
