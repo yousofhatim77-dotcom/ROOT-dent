@@ -750,6 +750,364 @@ textarea.input {
 
 /* ROOT CAPTION UI FIX V12 CSS END */
 
+
+/* ============================================================
+   ROOT PLATFORM INVENTORY V1
+   ============================================================ */
+
+.platform-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap:
+        18px;
+
+}
+
+
+.platform-box {
+
+    background:
+        var(--bg2);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        16px;
+
+    padding:
+        16px;
+
+}
+
+
+.platform-stats {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        );
+
+    gap:
+        10px;
+
+    margin:
+        18px 0;
+
+}
+
+
+.platform-stat {
+
+    background:
+        var(--bg2);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        14px;
+
+    padding:
+        14px;
+
+}
+
+
+.platform-stat strong {
+
+    display:
+        block;
+
+    font-size:
+        1.5rem;
+
+    margin-top:
+        4px;
+
+}
+
+
+.platform-table-wrap {
+
+    overflow-x:
+        auto;
+
+    margin-top:
+        14px;
+
+}
+
+
+.platform-table {
+
+    width:
+        100%;
+
+    border-collapse:
+        collapse;
+
+    min-width:
+        940px;
+
+}
+
+
+.platform-table th,
+.platform-table td {
+
+    text-align:
+        right;
+
+    padding:
+        10px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+
+    vertical-align:
+        middle;
+
+}
+
+
+.platform-code {
+
+    font-family:
+        Consolas,
+        monospace;
+
+    direction:
+        ltr;
+
+    display:
+        inline-block;
+
+}
+
+
+.platform-pill {
+
+    display:
+        inline-block;
+
+    padding:
+        5px 9px;
+
+    border-radius:
+        999px;
+
+    font-size:
+        .76rem;
+
+}
+
+
+.platform-pill.free {
+
+    background:
+        rgba(
+            66,
+            165,
+            245,
+            .15
+        );
+
+    color:
+        var(--blue2);
+
+}
+
+
+.platform-pill.assigned {
+
+    background:
+        rgba(
+            46,
+            125,
+            50,
+            .2
+        );
+
+    color:
+        #81c784;
+
+}
+
+
+.platform-actions {
+
+    display:
+        flex;
+
+    gap:
+        6px;
+
+    flex-wrap:
+        wrap;
+
+}
+
+
+.platform-actions select {
+
+    min-width:
+        160px;
+
+}
+
+
+.platform-qr-modal {
+
+    position:
+        fixed;
+
+    inset:
+        0;
+
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            .82
+        );
+
+    z-index:
+        9999;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    padding:
+        20px;
+
+}
+
+
+.platform-qr-box {
+
+    width:
+        min(
+            420px,
+            100%
+        );
+
+    background:
+        var(--card);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        22px;
+
+    padding:
+        22px;
+
+    text-align:
+        center;
+
+}
+
+
+#platformQrRender {
+
+    width:
+        fit-content;
+
+    margin:
+        18px auto;
+
+    background:
+        white;
+
+    padding:
+        15px;
+
+    border-radius:
+        16px;
+
+}
+
+
+.platform-smart-link {
+
+    direction:
+        ltr;
+
+    text-align:
+        left;
+
+    overflow-wrap:
+        anywhere;
+
+    color:
+        var(--muted);
+
+    font-size:
+        .78rem;
+
+    padding:
+        10px;
+
+    background:
+        var(--bg2);
+
+    border-radius:
+        10px;
+
+    border:
+        1px solid
+        var(--border);
+
+}
+
+
+@media (
+    max-width:
+        850px
+) {
+
+    .platform-grid {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+
+    .platform-stats {
+
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0,1fr)
+            );
+
+    }
+
+}
+
 </style>
 
 </head>
@@ -1443,6 +1801,316 @@ textarea.input {
     </form>
 
 </section>
+
+
+<!-- ============================================================
+     ROOT PLATFORM INVENTORY V1
+     ============================================================ -->
+
+<section
+    class="panel full"
+    id="platformInventoryPanel"
+    style="margin-top:18px"
+>
+
+<div class="panel-head">
+
+<h2>
+    <i class="fa-solid fa-layer-group"></i>
+    إدارة العملاء والكروت الذكية
+</h2>
+
+<button
+    id="platformRefreshBtn"
+    class="btn secondary small"
+    type="button"
+>
+    <i class="fa-solid fa-rotate"></i>
+    تحديث
+</button>
+
+</div>
+
+
+<p class="muted">
+    ولّد الكروت قبل الطباعة، ثم خصص كل كارت للعميل عند البيع. رابط QR المطبوع لا يتغير.
+</p>
+
+
+<div
+    id="platformStatus"
+    class="notice"
+>
+    جاري تحميل بيانات المنصة...
+</div>
+
+
+<div class="platform-stats">
+
+<div class="platform-stat">
+    <span class="muted">إجمالي الكروت</span>
+    <strong id="platformTotalCards">0</strong>
+</div>
+
+<div class="platform-stat">
+    <span class="muted">غير مخصصة</span>
+    <strong id="platformFreeCards">0</strong>
+</div>
+
+<div class="platform-stat">
+    <span class="muted">مخصصة</span>
+    <strong id="platformAssignedCards">0</strong>
+</div>
+
+<div class="platform-stat">
+    <span class="muted">العملاء</span>
+    <strong id="platformClientCount">0</strong>
+</div>
+
+</div>
+
+
+<div class="platform-grid">
+
+
+<div class="platform-box">
+
+<h3>
+    <i class="fa-solid fa-qrcode"></i>
+    توليد دفعة QR للطباعة
+</h3>
+
+
+<form id="platformBatchForm">
+
+<label>
+    اسم الدفعة
+</label>
+
+<input
+    id="platformBatchName"
+    class="input"
+    type="text"
+    value="ROOT Cards Batch"
+    required
+>
+
+
+<label>
+    عدد الكروت
+</label>
+
+<input
+    id="platformBatchCount"
+    class="input"
+    type="number"
+    min="1"
+    max="200"
+    value="20"
+    required
+>
+
+
+<label>
+    الوجهة قبل تخصيص الكارت
+</label>
+
+<input
+    id="platformBatchDestination"
+    class="input"
+    type="url"
+    value="https://yousofhatim77-dotcom.github.io/ROOT-dent/"
+    required
+>
+
+
+<button
+    id="platformGenerateBtn"
+    class="btn full"
+    type="submit"
+>
+
+<i class="fa-solid fa-wand-magic-sparkles"></i>
+
+توليد الكروت
+
+</button>
+
+</form>
+
+</div>
+
+
+
+<div class="platform-box">
+
+<h3>
+    <i class="fa-solid fa-user-plus"></i>
+    إضافة عميل جديد
+</h3>
+
+
+<form id="platformCustomerForm">
+
+<label>
+    اسم العميل / المعمل
+</label>
+
+<input
+    id="platformCustomerName"
+    class="input"
+    type="text"
+    required
+>
+
+
+<label>
+    معرف الموقع بالإنجليزية
+</label>
+
+<input
+    id="platformCustomerSlug"
+    class="input"
+    type="text"
+    placeholder="ahmed-dental"
+    pattern="[a-z0-9][a-z0-9-]{1,62}"
+    required
+>
+
+
+<label>
+    البريد الإلكتروني
+</label>
+
+<input
+    id="platformCustomerEmail"
+    class="input"
+    type="email"
+    required
+>
+
+
+<label>
+    كلمة مرور أولية
+</label>
+
+<input
+    id="platformCustomerPassword"
+    class="input"
+    type="password"
+    minlength="8"
+    required
+>
+
+
+<button
+    id="platformCreateCustomerBtn"
+    class="btn full"
+    type="submit"
+>
+
+<i class="fa-solid fa-user-plus"></i>
+
+إنشاء حساب العميل
+
+</button>
+
+</form>
+
+</div>
+
+
+</div>
+
+
+
+<div
+    class="platform-box"
+    style="margin-top:18px"
+>
+
+<h3>
+    <i class="fa-solid fa-users"></i>
+    العملاء
+</h3>
+
+<div
+    id="platformClients"
+    class="platform-table-wrap"
+></div>
+
+</div>
+
+
+
+<div
+    class="platform-box"
+    style="margin-top:18px"
+>
+
+<h3>
+    <i class="fa-solid fa-id-card"></i>
+    مخزون الكروت
+</h3>
+
+<div
+    id="platformCards"
+    class="platform-table-wrap"
+></div>
+
+</div>
+
+</section>
+
+
+<div
+    id="platformQrModal"
+    class="platform-qr-modal hidden"
+>
+
+<div class="platform-qr-box">
+
+<h3 id="platformQrTitle">
+    QR
+</h3>
+
+<div id="platformQrRender"></div>
+
+<div
+    id="platformQrLink"
+    class="platform-smart-link"
+></div>
+
+<div
+    class="platform-actions"
+    style="
+        margin-top:14px;
+        justify-content:center;
+    "
+>
+
+<button
+    id="platformQrDownload"
+    class="btn"
+    type="button"
+>
+    <i class="fa-solid fa-download"></i>
+    تحميل QR
+</button>
+
+<button
+    id="platformQrClose"
+    class="btn secondary"
+    type="button"
+>
+    إغلاق
+</button>
+
+</div>
+
+</div>
+
+</div>
 
 </main>
 
@@ -5499,6 +6167,1302 @@ async function showDashboard() {
 })();
 
 /* ROOT LIGHT TAB NARRATOR ADMIN V19 END */
+
+</script>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"
+></script>
+
+
+<script>
+
+/* ============================================================
+   ROOT PLATFORM INVENTORY V1
+   ============================================================ */
+
+(() => {
+
+const PLATFORM_API =
+    'https://fjvgsfqipiabwiliqygs.supabase.co/functions/v1/platform-admin';
+
+
+const PLATFORM_KEY =
+    'sb_publishable_xS7bZ6d7N7-532PLuAnX7w_ESAGf0zA';
+
+
+const SMART_BASE =
+    'https://yousofhatim77-dotcom.github.io/ROOT-SmartCard/r/?c=';
+
+
+const CLIENT_SITE_BASE =
+    'https://yousofhatim77-dotcom.github.io/ROOT-SmartCard/site/?site=';
+
+
+let platformData = {
+
+    cards:
+        [],
+
+    clients:
+        [],
+
+    batches:
+        []
+
+};
+
+
+let currentQrCode =
+    null;
+
+
+const el =
+    id =>
+        document.getElementById(
+            id
+        );
+
+
+function platformStatus(
+    message,
+    error = false
+) {
+
+    const target =
+        el(
+            'platformStatus'
+        );
+
+
+    if (
+        !target
+    ) {
+        return;
+    }
+
+
+    target.textContent =
+        message;
+
+
+    target.style.color =
+        error
+            ? '#ff8a80'
+            : 'var(--muted)';
+
+}
+
+
+async function platformApi(
+    action,
+    values = {}
+) {
+
+    const token =
+        await getToken();
+
+
+    const response =
+        await fetch(
+            PLATFORM_API,
+            {
+                method:
+                    'POST',
+
+                headers: {
+
+                    apikey:
+                        PLATFORM_KEY,
+
+                    Authorization:
+                        `Bearer ${token}`,
+
+                    'Content-Type':
+                        'application/json'
+
+                },
+
+                body:
+                    JSON.stringify({
+
+                        action,
+
+                        ...values
+
+                    })
+            }
+        );
+
+
+    const data =
+        await response
+            .json()
+            .catch(
+                () => ({})
+            );
+
+
+    if (
+        !response.ok
+    ) {
+
+        throw new Error(
+            data.error ||
+            `Platform ${response.status}`
+        );
+
+    }
+
+
+    return data;
+
+}
+
+
+function escapePlatform(
+    value
+) {
+
+    return String(
+        value ?? ''
+    )
+    .replace(
+        /[&<>"']/g,
+        character => ({
+
+            '&':
+                '&amp;',
+
+            '<':
+                '&lt;',
+
+            '>':
+                '&gt;',
+
+            '"':
+                '&quot;',
+
+            "'":
+                '&#039;'
+
+        })[character]
+    );
+
+}
+
+
+function batchName(
+    id
+) {
+
+    return (
+        platformData.batches
+            .find(
+                batch =>
+                    batch.id === id
+            )
+            ?.name
+        ||
+        '-'
+    );
+
+}
+
+
+function clientName(
+    id
+) {
+
+    return (
+        platformData.clients
+            .find(
+                client =>
+                    client.id === id
+            )
+            ?.display_name
+        ||
+        '-'
+    );
+
+}
+
+
+function updatePlatformStats() {
+
+    const cards =
+        platformData.cards;
+
+
+    el(
+        'platformTotalCards'
+    ).textContent =
+        cards.length;
+
+
+    el(
+        'platformFreeCards'
+    ).textContent =
+        cards.filter(
+            card =>
+                card.status ===
+                'unassigned'
+        ).length;
+
+
+    el(
+        'platformAssignedCards'
+    ).textContent =
+        cards.filter(
+            card =>
+                card.status ===
+                'assigned'
+        ).length;
+
+
+    el(
+        'platformClientCount'
+    ).textContent =
+        platformData.clients.length;
+
+}
+
+
+function renderPlatformClients() {
+
+    const target =
+        el(
+            'platformClients'
+        );
+
+
+    const clients =
+        platformData.clients;
+
+
+    if (
+        !clients.length
+    ) {
+
+        target.innerHTML =
+            '<div class="empty">لا يوجد عملاء حتى الآن.</div>';
+
+        return;
+
+    }
+
+
+    target.innerHTML = `
+
+        <table class="platform-table">
+
+        <thead>
+
+        <tr>
+            <th>العميل</th>
+            <th>البريد</th>
+            <th>معرف الموقع</th>
+            <th>الموقع</th>
+        </tr>
+
+        </thead>
+
+        <tbody>
+
+        ${
+            clients
+                .map(
+                    client => `
+
+                    <tr>
+
+                    <td>
+                        ${escapePlatform(
+                            client.display_name
+                        )}
+                    </td>
+
+                    <td dir="ltr">
+                        ${escapePlatform(
+                            client.owner_email ||
+                            ''
+                        )}
+                    </td>
+
+                    <td>
+                        <span class="platform-code">
+                            ${escapePlatform(
+                                client.slug
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+
+                        <a
+                            class="btn secondary small"
+                            target="_blank"
+                            rel="noopener"
+                            href="${CLIENT_SITE_BASE}${encodeURIComponent(
+                                client.slug
+                            )}"
+                        >
+                            فتح
+                        </a>
+
+                    </td>
+
+                    </tr>
+
+                `)
+                .join('')
+        }
+
+        </tbody>
+
+        </table>
+
+    `;
+
+}
+
+
+function customerOptions() {
+
+    return platformData.clients
+        .map(
+            client => `
+
+            <option value="${escapePlatform(
+                client.id
+            )}">
+
+                ${escapePlatform(
+                    client.display_name
+                )}
+
+                ${
+                    client.owner_email
+                        ? ` — ${escapePlatform(
+                            client.owner_email
+                        )}`
+                        : ''
+                }
+
+            </option>
+
+        `
+        )
+        .join('');
+
+}
+
+
+function renderPlatformCards() {
+
+    const target =
+        el(
+            'platformCards'
+        );
+
+
+    const cards =
+        platformData.cards;
+
+
+    if (
+        !cards.length
+    ) {
+
+        target.innerHTML =
+            '<div class="empty">لا توجد كروت. ولّد أول دفعة.</div>';
+
+        return;
+
+    }
+
+
+    const options =
+        customerOptions();
+
+
+    target.innerHTML = `
+
+        <table class="platform-table">
+
+        <thead>
+
+        <tr>
+            <th>الكود</th>
+            <th>الدفعة</th>
+            <th>الحالة</th>
+            <th>الوجهة</th>
+            <th>العميل</th>
+            <th>الإجراءات</th>
+        </tr>
+
+        </thead>
+
+        <tbody>
+
+        ${
+            cards
+                .map(
+                    card => {
+
+                        const free =
+                            card.status ===
+                                'unassigned';
+
+
+                        return `
+
+                        <tr>
+
+                        <td>
+
+                            <span class="platform-code">
+                                ${escapePlatform(
+                                    card.public_code
+                                )}
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            ${escapePlatform(
+                                batchName(
+                                    card.batch_id
+                                )
+                            )}
+                        </td>
+
+
+                        <td>
+
+                            <span
+                                class="platform-pill ${
+                                    free
+                                        ? 'free'
+                                        : 'assigned'
+                                }"
+                            >
+
+                                ${
+                                    free
+                                        ? 'غير مخصص'
+                                        : 'مخصص'
+                                }
+
+                            </span>
+
+                        </td>
+
+
+                        <td
+                            style="
+                                max-width:260px;
+                                overflow-wrap:anywhere;
+                            "
+                            dir="ltr"
+                        >
+
+                            ${escapePlatform(
+                                card.destination_url
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                free
+
+                                ? `
+
+                                    <select
+                                        class="input"
+                                        data-platform-client="${escapePlatform(
+                                            card.public_code
+                                        )}"
+                                    >
+
+                                        <option value="">
+                                            اختر العميل
+                                        </option>
+
+                                        ${options}
+
+                                    </select>
+
+                                `
+
+                                : escapePlatform(
+                                    clientName(
+                                        card.client_id
+                                    )
+                                )
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            <div class="platform-actions">
+
+                            <button
+                                class="btn secondary small"
+                                type="button"
+                                data-platform-qr="${escapePlatform(
+                                    card.public_code
+                                )}"
+                            >
+                                QR
+                            </button>
+
+
+                            <button
+                                class="btn secondary small"
+                                type="button"
+                                data-platform-copy="${escapePlatform(
+                                    card.public_code
+                                )}"
+                            >
+                                نسخ الرابط
+                            </button>
+
+
+                            ${
+                                free
+
+                                ? `
+
+                                    <button
+                                        class="btn small"
+                                        type="button"
+                                        data-platform-assign="${escapePlatform(
+                                            card.public_code
+                                        )}"
+                                    >
+                                        تخصيص
+                                    </button>
+
+                                `
+
+                                : ''
+                            }
+
+                            </div>
+
+                        </td>
+
+                        </tr>
+
+                    `;
+
+                    }
+                )
+                .join('')
+        }
+
+        </tbody>
+
+        </table>
+
+    `;
+
+
+    target
+        .querySelectorAll(
+            '[data-platform-qr]'
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    () =>
+                        openPlatformQr(
+                            button.dataset
+                                .platformQr
+                        );
+
+            }
+        );
+
+
+    target
+        .querySelectorAll(
+            '[data-platform-copy]'
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    async () => {
+
+                        const code =
+                            button.dataset
+                                .platformCopy;
+
+
+                        await navigator.clipboard
+                            .writeText(
+                                SMART_BASE +
+                                code
+                            );
+
+
+                        const old =
+                            button.textContent;
+
+
+                        button.textContent =
+                            'تم النسخ';
+
+
+                        setTimeout(
+                            () => {
+
+                                button.textContent =
+                                    old;
+
+                            },
+                            1200
+                        );
+
+                    };
+
+            }
+        );
+
+
+    target
+        .querySelectorAll(
+            '[data-platform-assign]'
+        )
+        .forEach(
+            button => {
+
+                button.onclick =
+                    async () => {
+
+                        const code =
+                            button.dataset
+                                .platformAssign;
+
+
+                        const select =
+                            target.querySelector(
+                                `[data-platform-client="${code}"]`
+                            );
+
+
+                        const clientId =
+                            select?.value;
+
+
+                        if (
+                            !clientId
+                        ) {
+
+                            alert(
+                                'اختر العميل أولًا.'
+                            );
+
+                            return;
+
+                        }
+
+
+                        if (
+                            !confirm(
+                                `تخصيص الكارت ${code} لهذا العميل؟`
+                            )
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        try {
+
+                            button.disabled =
+                                true;
+
+
+                            platformStatus(
+                                `جاري تخصيص ${code}...`
+                            );
+
+
+                            await platformApi(
+                                'assign_card',
+                                {
+
+                                    public_code:
+                                        code,
+
+                                    client_id:
+                                        clientId
+
+                                }
+                            );
+
+
+                            await loadPlatformDashboard();
+
+
+                            platformStatus(
+                                `تم تخصيص ${code} بنجاح.`
+                            );
+
+                        }
+                        catch (error) {
+
+                            platformStatus(
+                                error.message,
+                                true
+                            );
+
+                        }
+                        finally {
+
+                            button.disabled =
+                                false;
+
+                        }
+
+                    };
+
+            }
+        );
+
+}
+
+
+function renderPlatform() {
+
+    updatePlatformStats();
+
+    renderPlatformClients();
+
+    renderPlatformCards();
+
+}
+
+
+async function loadPlatformDashboard() {
+
+    try {
+
+        platformStatus(
+            'جاري تحميل العملاء والكروت...'
+        );
+
+
+        const data =
+            await platformApi(
+                'dashboard'
+            );
+
+
+        platformData = {
+
+            cards:
+                data.cards ||
+                [],
+
+            clients:
+                data.clients ||
+                [],
+
+            batches:
+                data.batches ||
+                []
+
+        };
+
+
+        renderPlatform();
+
+
+        platformStatus(
+            'تم تحديث بيانات المنصة.'
+        );
+
+    }
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        platformStatus(
+            error.message,
+            true
+        );
+
+    }
+
+}
+
+
+function openPlatformQr(
+    code
+) {
+
+    currentQrCode =
+        code;
+
+
+    el(
+        'platformQrTitle'
+    ).textContent =
+        code;
+
+
+    const link =
+        SMART_BASE +
+        code;
+
+
+    el(
+        'platformQrLink'
+    ).textContent =
+        link;
+
+
+    const render =
+        el(
+            'platformQrRender'
+        );
+
+
+    render.innerHTML =
+        '';
+
+
+    new QRCode(
+        render,
+        {
+
+            text:
+                link,
+
+            width:
+                260,
+
+            height:
+                260,
+
+            correctLevel:
+                QRCode.CorrectLevel.H
+
+        }
+    );
+
+
+    el(
+        'platformQrModal'
+    )
+    .classList
+    .remove(
+        'hidden'
+    );
+
+}
+
+
+el(
+    'platformQrClose'
+).onclick =
+    () => {
+
+        el(
+            'platformQrModal'
+        )
+        .classList
+        .add(
+            'hidden'
+        );
+
+};
+
+
+el(
+    'platformQrModal'
+)
+.addEventListener(
+    'click',
+    event => {
+
+        if (
+            event.target ===
+            el(
+                'platformQrModal'
+            )
+        ) {
+
+            el(
+                'platformQrModal'
+            )
+            .classList
+            .add(
+                'hidden'
+            );
+
+        }
+
+    }
+);
+
+
+el(
+    'platformQrDownload'
+).onclick =
+    () => {
+
+        if (
+            !currentQrCode
+        ) {
+
+            return;
+
+        }
+
+
+        const render =
+            el(
+                'platformQrRender'
+            );
+
+
+        const canvas =
+            render.querySelector(
+                'canvas'
+            );
+
+
+        const image =
+            render.querySelector(
+                'img'
+            );
+
+
+        const source =
+            canvas
+                ? canvas.toDataURL(
+                    'image/png'
+                )
+                : image?.src;
+
+
+        if (
+            !source
+        ) {
+
+            return;
+
+        }
+
+
+        const anchor =
+            document.createElement(
+                'a'
+            );
+
+
+        anchor.href =
+            source;
+
+
+        anchor.download =
+            `${currentQrCode}.png`;
+
+
+        document.body
+            .appendChild(
+                anchor
+            );
+
+
+        anchor.click();
+
+        anchor.remove();
+
+};
+
+
+el(
+    'platformBatchForm'
+)
+.addEventListener(
+    'submit',
+    async event => {
+
+        event.preventDefault();
+
+
+        const button =
+            el(
+                'platformGenerateBtn'
+            );
+
+
+        try {
+
+            button.disabled =
+                true;
+
+
+            button.innerHTML =
+                '<span class="spinner"></span> جاري التوليد';
+
+
+            platformStatus(
+                'جاري توليد دفعة الكروت...'
+            );
+
+
+            const data =
+                await platformApi(
+                    'generate_batch',
+                    {
+
+                        name:
+                            el(
+                                'platformBatchName'
+                            )
+                            .value
+                            .trim(),
+
+                        count:
+                            Number(
+                                el(
+                                    'platformBatchCount'
+                                )
+                                .value
+                            ),
+
+                        destination_url:
+                            el(
+                                'platformBatchDestination'
+                            )
+                            .value
+                            .trim()
+
+                    }
+                );
+
+
+            await loadPlatformDashboard();
+
+
+            platformStatus(
+                `تم توليد ${data.cards?.length || 0} كارت بنجاح.`
+            );
+
+        }
+        catch (error) {
+
+            platformStatus(
+                error.message,
+                true
+            );
+
+        }
+        finally {
+
+            button.disabled =
+                false;
+
+
+            button.innerHTML =
+                '<i class="fa-solid fa-wand-magic-sparkles"></i> توليد الكروت';
+
+        }
+
+    }
+);
+
+
+el(
+    'platformCustomerForm'
+)
+.addEventListener(
+    'submit',
+    async event => {
+
+        event.preventDefault();
+
+
+        const button =
+            el(
+                'platformCreateCustomerBtn'
+            );
+
+
+        try {
+
+            button.disabled =
+                true;
+
+
+            button.innerHTML =
+                '<span class="spinner"></span> جاري الإنشاء';
+
+
+            platformStatus(
+                'جاري إنشاء حساب العميل...'
+            );
+
+
+            const result =
+                await platformApi(
+                    'create_customer',
+                    {
+
+                        display_name:
+                            el(
+                                'platformCustomerName'
+                            )
+                            .value
+                            .trim(),
+
+                        slug:
+                            el(
+                                'platformCustomerSlug'
+                            )
+                            .value
+                            .trim()
+                            .toLowerCase(),
+
+                        email:
+                            el(
+                                'platformCustomerEmail'
+                            )
+                            .value
+                            .trim(),
+
+                        password:
+                            el(
+                                'platformCustomerPassword'
+                            )
+                            .value
+
+                    }
+                );
+
+
+            event.target
+                .reset();
+
+
+            await loadPlatformDashboard();
+
+
+            platformStatus(
+                `تم إنشاء العميل. موقعه: ${result.site_url}`
+            );
+
+        }
+        catch (error) {
+
+            platformStatus(
+                error.message,
+                true
+            );
+
+        }
+        finally {
+
+            button.disabled =
+                false;
+
+
+            button.innerHTML =
+                '<i class="fa-solid fa-user-plus"></i> إنشاء حساب العميل';
+
+        }
+
+    }
+);
+
+
+el(
+    'platformRefreshBtn'
+).onclick =
+    loadPlatformDashboard;
+
+
+/*
+ * Load when the normal ROOT admin dashboard becomes visible.
+ */
+
+const rootDashboard =
+    document.getElementById(
+        'dashboard'
+    );
+
+
+if (
+    rootDashboard
+) {
+
+    const observer =
+        new MutationObserver(
+            () => {
+
+                if (
+                    !rootDashboard
+                        .classList
+                        .contains(
+                            'hidden'
+                        )
+                ) {
+
+                    loadPlatformDashboard();
+
+                }
+
+            }
+        );
+
+
+    observer.observe(
+        rootDashboard,
+        {
+            attributes:
+                true,
+
+            attributeFilter: [
+                'class'
+            ]
+        }
+    );
+
+
+    if (
+        !rootDashboard
+            .classList
+            .contains(
+                'hidden'
+            )
+    ) {
+
+        loadPlatformDashboard();
+
+    }
+
+}
+
+})();
 
 </script>
 
