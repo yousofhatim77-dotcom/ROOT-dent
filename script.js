@@ -6926,230 +6926,198 @@ function rootPricingIsOpen() {
 }
 
 
+/*
+ * Mobile back protection V24.
+ *
+ * A browser cannot keep an Android tab alive by force. We protect
+ * navigation with one same-page history state; the second quick Back
+ * returns to a REAL earlier page when one is available, otherwise it
+ * shows an in-tab exit screen instead of calling window.close or
+ * crossing beyond the only existing history entry.
+ */
+const ROOT_BACK_DOUBLE_MS = 2000;
+let rootMobileGuardInitialized = false;
+let rootAllowHistoryExit = false;
+
 function rootPushBackGuard() {
+    if (!rootIsMobileNavigation() ||
+        rootAllowHistoryExit ||
+        history.state?.rootDentalGuard) return;
 
-    history.pushState(
-        {
-            rootDentalGuard:
-                true
-        },
-        '',
-        location.href
-    );
-
-
-    rootBackGuardActive =
-        true;
-
-}
-
-
-function rootMobileBackHandler(
-    event
-) {
-
-    if (
-        !rootIsMobileNavigation()
-    ) {
-
-        return;
-
-    }
-
-
-    /*
-     * Viewer open:
-     * hardware/browser back closes the image only.
-     */
-    if (
-        rootViewerIsOpen()
-    ) {
-
-        if (
-            typeof closeViewer ===
-            'function'
-        ) {
-
-            closeViewer();
-
-        }
-
-
-        rootPushBackGuard();
-
-        return;
-
-    }
-
-
-    /*
-     * Project modal open:
-     * close the project only.
-     */
-    if (
-        rootProjectIsOpen()
-    ) {
-
-        const modal =
-            document.getElementById(
-                'projectModal'
-            );
-
-
-        if (
-            typeof hideOverlay ===
-                'function'
-        ) {
-
-            hideOverlay(
-                modal
-            );
-
-        }
-
-        else {
-
-            modal.style.display =
-                'none';
-
-        }
-
-
-        rootPushBackGuard();
-
-        return;
-
-    }
-
-
-    /*
-     * About page:
-     * Back returns to Products.
-     */
-    if (
-        document.body
-            .classList
-            .contains(
-                'about-view-active'
-            )
-    ) {
-
-        if (
-            typeof showProducts ===
-                'function'
-        ) {
-
-            showProducts();
-
-        }
-
-
-        rootPushBackGuard();
-
-        return;
-
-    }
-
-
-    /*
-     * Pricing:
-     * Back returns to Products.
-     */
-    if (
-        rootPricingIsOpen()
-    ) {
-
-        if (
-            typeof showProducts ===
-                'function'
-        ) {
-
-            showProducts();
-
-        }
-
-
-        rootPushBackGuard();
-
-        return;
-
-    }
-
-
-    /*
-     * Main Products page:
-     * Require two back presses within 2 seconds.
-     */
-    const now =
-        Date.now();
-
-
-    if (
-        now -
-        rootLastBackAttempt <
-        2000
-    ) {
-
-        window.removeEventListener(
-            'popstate',
-            rootMobileBackHandler
+    try {
+        history.pushState(
+            {
+                ...(history.state && typeof history.state === 'object'
+                    ? history.state : {}),
+                rootDentalGuard: true
+            },
+            '',
+            location.href
         );
-
-
-        history.back();
-
-        return;
-
+        rootBackGuardActive = true;
+    } catch (error) {
+        console.warn('Could not establish mobile back protection:', error);
     }
-
-
-    rootLastBackAttempt =
-        now;
-
-
-    rootShowBackToast(
-        'اضغط رجوع مرة أخرى للخروج'
-    );
-
-
-    rootPushBackGuard();
-
 }
 
+function rootExitScreenIsOpen() {
+    const screen = document.getElementById('rootSafeExitScreen');
+    return Boolean(screen && !screen.hidden);
+}
+
+function rootHideSafeExitScreen() {
+    const screen = document.getElementById('rootSafeExitScreen');
+    if (screen) screen.hidden = true;
+    rootLastBackAttempt = 0;
+}
+
+function rootShowSafeExitScreen() {
+    let screen = document.getElementById('rootSafeExitScreen');
+
+    if (!screen) {
+        screen = document.createElement('div');
+        screen.id = 'rootSafeExitScreen';
+        screen.className = 'root-safe-exit-screen';
+        screen.setAttribute('role', 'dialog');
+        screen.setAttribute('aria-modal', 'true');
+        screen.setAttribute('aria-label', 'تم الخروج من العرض');
+        screen.innerHTML = `
+            <div class="root-safe-exit-card" dir="rtl">
+                <span class="root-safe-exit-icon" aria-hidden="true">
+                    <i class="fas fa-tooth"></i>
+                </span>
+                <strong>ROOT dent</strong>
+                <h2>تم الخروج من العرض</h2>
+                <p>التبويب لسه مفتوح، وتقدر ترجع للموقع في أي وقت.</p>
+                <button id="rootSafeExitReturn" type="button">
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    العودة للموقع
+                </button>
+            </div>
+        `;
+        document.body.appendChild(screen);
+        screen.querySelector('#rootSafeExitReturn')
+            ?.addEventListener('click', rootHideSafeExitScreen);
+    }
+
+    screen.hidden = false;
+    screen.querySelector('#rootSafeExitReturn')
+        ?.focus({ preventScroll: true });
+}
+
+function rootCanReturnToEarlierTabPage() {
+    // Installed PWAs can get destroyed by the OS's back action.
+    // Do not attempt to close their last history entry.
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        navigator.standalone === true) return false;
+
+    // Navigation API (when supported) knows whether an actual
+    // previous entry exists at the current history position.
+    if (typeof window.navigation?.canGoBack === 'boolean') {
+        return window.navigation.canGoBack;
+    }
+
+    // Current page + our synthetic guard normally means length === 2
+    // for a directly opened tab. A length of 3+ usually means there is
+    // an earlier, same-tab page to which Back can safely return.
+    return history.length > 2;
+}
+
+function rootMobileBackHandler() {
+    if (!rootIsMobileNavigation() || rootAllowHistoryExit) return;
+
+    // The guard is consumed before popstate fires. Re-arm it after
+    // handling each in-site Back so single Back never closes the tab.
+    const rearm = () => rootPushBackGuard();
+
+    if (rootExitScreenIsOpen()) {
+        rootHideSafeExitScreen();
+        rearm();
+        return;
+    }
+
+    if (rootViewerIsOpen()) {
+        rootLastBackAttempt = 0;
+        if (typeof closeViewer === 'function') closeViewer();
+        rearm();
+        return;
+    }
+
+    if (rootProjectIsOpen()) {
+        rootLastBackAttempt = 0;
+        const modal = document.getElementById('projectModal');
+        if (modal) {
+            if (typeof hideOverlay === 'function') hideOverlay(modal);
+            else modal.style.display = 'none';
+        }
+        rearm();
+        return;
+    }
+
+    if (document.body.classList.contains('about-view-active') ||
+        rootPricingIsOpen()) {
+        rootLastBackAttempt = 0;
+        if (typeof showProducts === 'function') showProducts();
+        rearm();
+        return;
+    }
+
+    const now = Date.now();
+    if (rootLastBackAttempt &&
+        now - rootLastBackAttempt <= ROOT_BACK_DOUBLE_MS) {
+
+        rootLastBackAttempt = 0;
+
+        if (rootCanReturnToEarlierTabPage()) {
+            // The first Back moved from our guard to the real site
+            // entry. One more Back reaches the genuinely previous page,
+            // without closing the browser tab.
+            rootAllowHistoryExit = true;
+            history.back();
+            return;
+        }
+
+        // Directly opened tab: there is no earlier page to return to.
+        // Keep this tab in history, rather than letting Android close it.
+        rootShowSafeExitScreen();
+        rearm();
+        return;
+    }
+
+    rootLastBackAttempt = now;
+    rootShowBackToast('اضغط رجوع مرة ثانية خلال ثانيتين للخروج');
+    rearm();
+}
 
 function rootInitMobileBackGuard() {
+    if (!rootIsMobileNavigation()) return;
 
-    if (
-        !rootIsMobileNavigation()
-    ) {
+    if (!rootMobileGuardInitialized) {
+        rootMobileGuardInitialized = true;
+        window.addEventListener('popstate', rootMobileBackHandler);
 
-        return;
+        // A restored or activated mobile tab must retain one guard.
+        window.addEventListener('pageshow', () => {
+            if (!rootAllowHistoryExit) rootPushBackGuard();
+        });
 
+        document.addEventListener('pointerdown', () => {
+            if (!rootAllowHistoryExit) rootPushBackGuard();
+        }, { passive: true, capture: true });
     }
 
-
-    if (
-        !history.state?.rootDentalGuard
-    ) {
-
-        rootPushBackGuard();
-
-    }
-
-
-    window.addEventListener(
-        'popstate',
-        rootMobileBackHandler
-    );
-
+    rootPushBackGuard();
 }
 
-
-window.addEventListener(
-    'load',
-    rootInitMobileBackGuard
-);
-
+// Register as soon as the end-of-body script executes, not only when
+// all images/audio have finished loading (load may take a long time).
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', rootInitMobileBackGuard, {
+        once: true
+    });
+} else {
+    rootInitMobileBackGuard();
+}
 
 /* ROOT MOBILE BACK GUARD V14 END */
 
