@@ -4790,6 +4790,49 @@ function setupNavButtons() {
 // LOGO POSITION
 // ============================================================
 
+/*
+ * A narration must wait for the WHOLE logo transition. Looking at
+ * document.getAnimations() once is incorrect for edge-to-edge moves:
+ * the exit creates a second enter animation only after it finishes.
+ */
+let rootLogoMotionState = null;
+
+function rootBeginLogoMotion(motionId) {
+    if (rootLogoMotionState) rootLogoMotionState.finish();
+
+    let resolveMotion;
+    const state = {
+        id: String(motionId),
+        done: false,
+        fallbackTimer: null,
+        promise: new Promise(resolve => { resolveMotion = resolve; }),
+        finish() {
+            if (this.done) return;
+            this.done = true;
+            clearTimeout(this.fallbackTimer);
+            resolveMotion();
+        }
+    };
+
+    rootLogoMotionState = state;
+    // Safety net only; real flight/teleport callbacks settle first.
+    state.fallbackTimer = setTimeout(() => {
+        if (rootLogoMotionState === state) state.finish();
+    }, 2400);
+}
+
+function rootFinishLogoMotion(motionId) {
+    const state = rootLogoMotionState;
+    if (!state || state.id !== String(motionId)) return;
+
+    // Allow the final actual logo (rather than the flying clone)
+    // to be painted before revealing the speech bubble.
+    requestAnimationFrame(() => {
+        if (rootLogoMotionState === state) state.finish();
+    });
+}
+
+
 function setLogoPosition(
     position
 ) {
@@ -4805,6 +4848,9 @@ function setLogoPosition(
 
     const previousPosition =
         currentLogoPosition;
+
+    const previousMotionStillRunning =
+        Boolean(rootLogoMotionState && !rootLogoMotionState.done);
 
 
     /*
@@ -4827,6 +4873,8 @@ function setLogoPosition(
         String(
             motionId
         );
+
+    rootBeginLogoMotion(motionId);
 
 
     /*
@@ -4901,6 +4949,16 @@ function setLogoPosition(
         previousPosition
     ) {
 
+        // Re-clicking a tab while its old transition is underway
+        // must not reveal the narrator ahead of the moving logo.
+        if (previousMotionStillRunning) {
+            setTimeout(
+                () => rootFinishLogoMotion(motionId),
+                rootGetLogoFallbackDelay()
+            );
+        } else {
+            rootFinishLogoMotion(motionId);
+        }
         return;
 
     }
@@ -5372,6 +5430,8 @@ function setLogoPosition(
                     labLogo.style.filter =
                         '';
 
+                    rootFinishLogoMotion(motionId);
+
                 }
             )
             .catch(
@@ -5382,6 +5442,8 @@ function setLogoPosition(
 
                     labLogo.style.visibility =
                         '';
+
+                    rootFinishLogoMotion(motionId);
 
                 }
             );
@@ -5612,16 +5674,18 @@ function setLogoPosition(
                                     'logo-teleporting'
                                 );
 
+                                rootFinishLogoMotion(motionId);
+
                             }
                         )
                         .catch(
-                            () => {}
+                            () => rootFinishLogoMotion(motionId)
                         );
 
                 }
             )
             .catch(
-                () => {}
+                () => rootFinishLogoMotion(motionId)
             );
 
 
@@ -5652,6 +5716,11 @@ function setLogoPosition(
 
     currentLogoPosition =
         position;
+
+    setTimeout(
+        () => rootFinishLogoMotion(motionId),
+        rootGetLogoFallbackDelay()
+    );
 
 }
 
@@ -6642,100 +6711,27 @@ function rootSpeakNarrator(
 
 
 /*
- * Re-define announce to guarantee UI + speech.
+ * The bubble is positioned but stays hidden while the speech engine
+ * prepares. Text, logo pulse and bubble all start at speech.onstart.
  */
-function rootNarratorAnnounce(
-    viewerItem
-) {
+function rootNarratorAnnounce(viewerItem) {
+    const text = rootNarratorCustomText(viewerItem);
 
-    const text =
-        rootNarratorCustomText(
-            viewerItem
-        );
+    rootEnsureNarratorBubble();
+    rootNarratorStop(true);
 
-
-    const wrap =
-        rootEnsureNarratorBubble();
-
-
-    const textElement =
-        document.getElementById(
-            'rootNarratorText'
-        );
-
-
-    const oldText =
-        textElement
-            ?.textContent
-            ?.trim() ||
-        '';
-
-
-    rootNarratorStop(
-        false
-    );
-
-
-    if (
-        !text
-    ) {
-
-        if (
-            textElement
-        ) {
-
-            textElement.textContent =
-                '';
-
-        }
-
-
-        wrap?.classList.remove(
-            'show'
-        );
-
-
-        return;
-
+    const textElement = document.getElementById('rootNarratorText');
+    if (textElement) {
+        textElement.textContent = '';
+        textElement.setAttribute('lang', rootNarratorLanguage(text));
     }
 
+    if (!text) return;
 
-    if (
-        oldText &&
-        oldText !==
-            text
-    ) {
-
-        rootAnimateOldNarratorMessage(
-            oldText
-        );
-
-    }
-
-
-    wrap?.classList.add(
-        'show'
-    );
-
-
+    // The real floating icon has already landed on its destination.
     rootPositionNarratorBubble();
-
-
-    const token =
-        ++rootNarratorToken;
-
-
-    rootTypeNarrator(
-        text,
-        token
-    );
-
-
-    rootSpeakNarrator(
-        text,
-        token
-    );
-
+    const token = ++rootNarratorToken;
+    rootSpeakNarrator(text, token);
 }
 
 
@@ -7695,333 +7691,175 @@ function rootMobileMaleVoice(voices, language) {
 
 
 /*
- * Narrator speech synchronized with word boundaries.
+ * Reveal the first letter and animate the logo in the SAME callback
+ * that confirms audible speech has begun.
  */
-function rootSpeakNarrator(
-    text,
-    token
-) {
+function rootStartNarratorVisuals(text, token, voiceStarted) {
+    if (token !== rootNarratorToken) return;
 
-    const value =
-        String(
-            text || ''
-        )
-        .trim();
+    const bubble = rootEnsureNarratorBubble();
+    bubble?.classList.add('show');
+    rootPositionNarratorBubble();
+    rootTypeNarrator(text, token);
 
+    if (voiceStarted) {
+        document.getElementById('labLogo')
+            ?.classList.add('root-narrator-speaking');
+        rootPulseLogoWithSpeech(text, 0, 0);
+    }
+}
 
-    if (
-        !value ||
-        !(
-            'speechSynthesis' in
-            window
-        )
-    ) {
+/*
+ * Desktop voice selection and speech settings are preserved.
+ * If a browser blocks audio, show the text (without fake lip motion)
+ * instead of leaving an empty bubble indefinitely.
+ */
+function rootSpeakNarrator(text, token) {
+    const value = String(text || '').trim();
+    if (!value || token !== rootNarratorToken) return;
 
+    let revealed = false;
+    const reveal = speaking => {
+        if (revealed || token !== rootNarratorToken) return;
+        revealed = true;
+        rootStartNarratorVisuals(value, token, speaking);
+    };
+
+    if (!('speechSynthesis' in window) ||
+        typeof SpeechSynthesisUtterance === 'undefined') {
+        reveal(false);
         return;
-
     }
 
-
     rootResetSpeechLogoMotion();
+    const synth = window.speechSynthesis;
+    const language = rootNarratorLanguage(value);
+    const speech = new SpeechSynthesisUtterance(value);
+    speech.lang = language;
+    speech.rate = .94;
+    speech.pitch = 1;
+    speech.volume = 1;
 
-
-    const language =
-        rootNarratorLanguage(
-            value
-        );
-
-
-    const speech =
-        new SpeechSynthesisUtterance(
-            value
-        );
-
-
-    speech.lang =
-        language;
-
-
-    speech.rate =
-        .94;
-
-
-    speech.pitch =
-        1;
-
-
-    speech.volume =
-        1;
-
-
-    const voices =
-        window
-            .speechSynthesis
-            .getVoices();
-
-
-    const prefix =
-        language
-            .split(
-                '-'
-            )[0]
-            .toLowerCase();
-
+    const voices = synth.getVoices();
+    const prefix = language.split('-')[0].toLowerCase();
 
     const voice =
         rootMobileMaleVoice(voices, language)
         ||
-        voices.find(
-            item =>
-                String(
-                    item.lang ||
-                    ''
-                )
-                .toLowerCase() ===
-                language
-                    .toLowerCase()
+        voices.find(item =>
+            String(item.lang || '').toLowerCase() === language.toLowerCase()
         )
         ||
-        voices.find(
-            item =>
-                String(
-                    item.lang ||
-                    ''
-                )
-                .toLowerCase()
-                .startsWith(
-                    prefix
-                )
+        voices.find(item =>
+            String(item.lang || '').toLowerCase().startsWith(prefix)
         );
 
-
-    if (
-        voice
-    ) {
-
-        speech.voice =
-            voice;
-
-    }
-
-
-    let boundaryReceived =
-        false;
-
-
-    let fallbackWordIndex =
-        0;
-
-
-    const fallbackWords =
-        [
-            ...value.matchAll(
-                /\S+/gu
-            )
-        ];
-
-
-    speech.onstart =
-        () => {
-
-            if (
-                token !==
-                rootNarratorToken
-            ) {
-                return;
-            }
-
-
-            const logo =
-                document.getElementById(
-                    'labLogo'
-                );
-
-
-            logo?.classList.add(
-                'root-narrator-speaking'
-            );
-
-
-            /*
-             * Wait briefly for real word-boundary events.
-             * If browser does not provide them, use a
-             * deterministic fallback rhythm.
-             */
-            const fallbackPulse =
-                () => {
-
-                    if (
-                        token !==
-                        rootNarratorToken ||
-                        boundaryReceived
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    if (
-                        fallbackWordIndex >=
-                        fallbackWords.length
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    const item =
-                        fallbackWords[
-                            fallbackWordIndex
-                        ];
-
-
-                    rootPulseLogoWithSpeech(
-                        value,
-                        item.index,
-                        (
-                            fallbackWordIndex *
-                            .31
-                        )
-                    );
-
-
-                    fallbackWordIndex++;
-
-
-                    rootSpeechFallbackTimer =
-                        setTimeout(
-                            fallbackPulse,
-                            310
-                        );
-
-                };
-
-
-            rootSpeechFallbackTimer =
-                setTimeout(
-                    fallbackPulse,
-                    500
-                );
-
-        };
-
-
-    speech.onboundary =
-        event => {
-
-            if (
-                token !==
-                rootNarratorToken
-            ) {
-
-                return;
-
-            }
-
-
-            boundaryReceived =
-                true;
-
-
-            if (
-                rootSpeechFallbackTimer
-            ) {
-
-                clearTimeout(
-                    rootSpeechFallbackTimer
-                );
-
-                rootSpeechFallbackTimer =
-                    null;
-
-            }
-
-
-            /*
-             * Chrome exposes word boundaries here.
-             */
-            rootPulseLogoWithSpeech(
-                value,
-                event.charIndex,
-                event.elapsedTime
-            );
-
-        };
-
-
-    const finish =
-        () => {
-
-            if (
-                token !==
-                rootNarratorToken
-            ) {
-
-                return;
-
-            }
-
-
-            rootResetSpeechLogoMotion();
-
-        };
-
-
-    speech.onend =
-        finish;
-
-
-    speech.onerror =
-        finish;
-
-
-    window
-        .speechSynthesis
-        .cancel();
-
-
-    /*
-     * Some browsers populate voices slightly later.
-     */
-    if (
-        voices.length
-    ) {
-
-        window
-            .speechSynthesis
-            .speak(
-                speech
-            );
-
-    }
-
-    else {
-
-        setTimeout(
-            () => {
-
-                if (
-                    token ===
-                    rootNarratorToken
-                ) {
-
-                    window
-                        .speechSynthesis
-                        .speak(
-                            speech
-                        );
-
-                }
-
-            },
-            120
+    if (voice) speech.voice = voice;
+
+    let speechStarted = false;
+    let speechFinished = false;
+    let boundaryReceived = false;
+    let fallbackWordIndex = 1;
+    const fallbackWords = [...value.matchAll(/\S+/gu)];
+    let startWatchdog = null;
+
+    const clearStartWatchdog = () => {
+        if (startWatchdog) {
+            clearTimeout(startWatchdog);
+            startWatchdog = null;
+        }
+    };
+
+    const fallbackPulse = () => {
+        if (token !== rootNarratorToken ||
+            speechFinished || boundaryReceived ||
+            fallbackWordIndex >= fallbackWords.length) return;
+
+        const word = fallbackWords[fallbackWordIndex];
+        rootPulseLogoWithSpeech(
+            value, word.index, fallbackWordIndex * .31
         );
+        fallbackWordIndex++;
+        rootSpeechFallbackTimer = setTimeout(fallbackPulse, 310);
+    };
 
-    }
+    speech.onstart = () => {
+        if (token !== rootNarratorToken || speechFinished) return;
+        speechStarted = true;
+        clearStartWatchdog();
 
+        // FIRST letter + FIRST animation pulse when FIRST audio starts.
+        reveal(true);
+        rootSpeechFallbackTimer = setTimeout(fallbackPulse, 400);
+    };
+
+    speech.onboundary = event => {
+        if (token !== rootNarratorToken || speechFinished) return;
+        if (event.name && event.name !== 'word') return;
+
+        if (!speechStarted) {
+            speechStarted = true;
+            clearStartWatchdog();
+            reveal(true);
+        }
+
+        boundaryReceived = true;
+        if (rootSpeechFallbackTimer) {
+            clearTimeout(rootSpeechFallbackTimer);
+            rootSpeechFallbackTimer = null;
+        }
+
+        rootPulseLogoWithSpeech(
+            value, event.charIndex || 0, event.elapsedTime || 0
+        );
+    };
+
+    const finishSpeech = () => {
+        if (token !== rootNarratorToken || speechFinished) return;
+        speechFinished = true;
+        clearStartWatchdog();
+        if (!speechStarted) reveal(false);
+        rootResetSpeechLogoMotion();
+    };
+
+    speech.onend = finishSpeech;
+    speech.onerror = event => {
+        if (token !== rootNarratorToken) return;
+        console.warn('ROOT speech:', event.error || 'unavailable');
+        finishSpeech();
+    };
+
+    // Some mobile browsers silently ignore a speech request.
+    // When that happens, display the words, but do not pretend to talk.
+    startWatchdog = setTimeout(() => {
+        if (token !== rootNarratorToken || speechStarted ||
+            speechFinished) return;
+
+        speechFinished = true;
+        clearStartWatchdog();
+        try { synth.cancel(); } catch {}
+        reveal(false);
+        rootResetSpeechLogoMotion();
+    }, 4200);
+
+    const play = () => {
+        if (token !== rootNarratorToken) return;
+        try {
+            if (synth.paused) synth.resume();
+            synth.speak(speech);
+        } catch (error) {
+            console.warn('ROOT speech start failed:', error);
+            finishSpeech();
+        }
+    };
+
+    try { synth.cancel(); } catch {}
+
+    // Browser voice catalogs can populate just after page load.
+    if (voices.length) play();
+    else setTimeout(play, 120);
 }
+
 
 /* ROOT SPEECH RHYTHM LOGO V16 END */
 
@@ -8585,133 +8423,21 @@ function rootGetLogoFallbackDelay() {
    WAIT FOR THE CURRENT LOGO MOTION
    ============================================================ */
 
-async function rootWaitForCurrentLogoMotion(
-    generation
-) {
+async function rootWaitForCurrentLogoMotion(generation) {
+    const motion = rootLogoMotionState;
 
-    /*
-     * Two frames allow the existing tab code to:
-     * - change classes
-     * - create temporary flight clones
-     * - start CSS animation
-     */
-    await new Promise(
-        resolve =>
-            requestAnimationFrame(
-                resolve
-            )
-    );
-
-
-    await new Promise(
-        resolve =>
-            requestAnimationFrame(
-                resolve
-            )
-    );
-
-
-    if (
-        generation !==
-        rootTabNavGeneration
-    ) {
-
-        return false;
-
+    if (motion && !motion.done) {
+        await motion.promise;
     }
 
+    if (generation !== rootTabNavGeneration ||
+        (motion && rootLogoMotionState !== motion)) return false;
 
-    const animations =
-        rootGetRunningLogoAnimations();
+    // Reading the FINAL icon's coordinates only after completion.
+    await new Promise(resolve => requestAnimationFrame(resolve));
 
-
-    if (
-        animations.length
-    ) {
-
-        /*
-         * Wait for the animations that belong to THIS
-         * final navigation.
-         *
-         * No polling.
-         */
-        const animationWait =
-            Promise.allSettled(
-                animations.map(
-                    animation =>
-                        animation.finished
-                )
-            );
-
-
-        const safetyWait =
-            new Promise(
-                resolve => {
-
-                    rootTabWaitTimer =
-                        setTimeout(
-                            resolve,
-                            1600
-                        );
-
-                }
-            );
-
-
-        await Promise.race(
-            [
-                animationWait,
-                safetyWait
-            ]
-        );
-
-
-        if (
-            rootTabWaitTimer
-        ) {
-
-            clearTimeout(
-                rootTabWaitTimer
-            );
-
-
-            rootTabWaitTimer =
-                0;
-
-        }
-
-    }
-
-    else {
-
-        /*
-         * One timer only.
-         * No repeating checks.
-         */
-        await new Promise(
-            resolve => {
-
-                rootTabWaitTimer =
-                    setTimeout(
-                        resolve,
-                        rootGetLogoFallbackDelay()
-                    );
-
-            }
-        );
-
-
-        rootTabWaitTimer =
-            0;
-
-    }
-
-
-    return (
-        generation ===
-        rootTabNavGeneration
-    );
-
+    return generation === rootTabNavGeneration &&
+        (!motion || rootLogoMotionState === motion);
 }
 
 
@@ -8790,31 +8516,8 @@ async function rootScheduleFinalTabNarration(
     }
 
 
-    /*
-     * Small final settle only.
-     */
-    await new Promise(
-        resolve =>
-            setTimeout(
-                resolve,
-                55
-            )
-    );
-
-
-    if (
-        generation !==
-        rootTabNavGeneration
-        ||
-        !button.classList.contains(
-            'active'
-        )
-    ) {
-
-        return;
-
-    }
-
+    if (generation !== rootTabNavGeneration ||
+        !button.classList.contains('active')) return;
 
     rootTabNarrationActive =
         true;
