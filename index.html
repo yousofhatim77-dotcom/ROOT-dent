@@ -19,58 +19,38 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261010-narration22"
+        href="style.css?v=20261010-floatnav23"
     >
 
 </head>
 
 <body>
 
-    <!-- ======================================================
-         HEADER
-    ======================================================= -->
+    <!-- Floating navigation: no full-width top strip -->
+    <nav class="root-floating-nav" aria-label="التنقل الرئيسي">
+        <div class="nav-buttons">
+            <button
+                class="nav-btn"
+                id="navPricingBtn"
+                type="button"
+                aria-pressed="false"
+            >قائمة الأسعار</button>
 
-    <header class="top-bar">
+            <button
+                class="nav-btn"
+                id="navAboutBtn"
+                type="button"
+                aria-pressed="false"
+            >شعارنا</button>
 
-        <div class="top-bar-inner">
-
-            <div class="logo-area">
-                <span class="logo-text"></span>
-            </div>
-
-            <div class="nav-buttons">
-
-                <button
-                    class="nav-btn"
-                    id="navPricingBtn"
-                    type="button"
-                >
-                    قائمة الأسعار
-                </button>
-
-                <button
-                    class="nav-btn"
-                    id="navAboutBtn"
-                    type="button"
-                >
-                    عننا
-                </button>
-
-                <button
-                    class="nav-btn active"
-                    id="navProductsBtn"
-                    type="button"
-                >
-                    منتجاتنا
-                </button>
-
-            </div>
-
-            <div class="header-spacer"></div>
-
+            <button
+                class="nav-btn active"
+                id="navProductsBtn"
+                type="button"
+                aria-pressed="true"
+            >منتجاتنا</button>
         </div>
-
-    </header>
+    </nav>
 
 
     <!-- ======================================================
@@ -786,7 +766,7 @@
          SCRIPT
     ======================================================= -->
 
-    <script src="script.js?v=20261010-narration22"></script>
+    <script src="script.js?v=20261010-floatnav23"></script>
 
 </body>
 
