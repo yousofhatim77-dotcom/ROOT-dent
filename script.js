@@ -214,103 +214,39 @@ function applyPublicSiteConfig() {
     }
 
 
-    const facebookLink =
-        document.querySelector(
-            'a[href*="facebook.com"]'
-        );
+    const brand = document.getElementById('rootContactBrand');
+    if (brand) brand.textContent = config.brandName || 'ROOT dent';
 
-
-    if (
-        facebookLink
-    ) {
-
-        if (
-            config.facebookUrl
-        ) {
-
-            facebookLink.href =
-                config.facebookUrl;
-
-        }
-
-
-        replaceLinkText(
-            facebookLink,
-            config.facebookLabel ||
-            'فيسبوك'
-        );
-
+    const facebook = document.getElementById('rootContactFacebook');
+    if (facebook) {
+        facebook.href = config.facebookUrl ||
+            DEFAULT_PUBLIC_SITE_CONFIG.facebookUrl;
     }
+    const facebookLabel = document.getElementById('rootContactFacebookLabel');
+    if (facebookLabel) facebookLabel.textContent =
+        config.facebookLabel || 'فيسبوك';
 
-
-    const whatsappLink =
-        document.querySelector(
-            'a[href*="wa.me"]'
-        );
-
-
-    if (
-        whatsappLink
-    ) {
-
-        const whatsappNumber =
-            String(
-                config.whatsappNumber ||
-                ''
-            )
-            .replace(
-                /\D/g,
-                ''
-            );
-
-
-        if (
-            whatsappNumber
-        ) {
-
-            whatsappLink.href =
-                `https://wa.me/${whatsappNumber}`;
-
-        }
-
-
-        replaceLinkText(
-            whatsappLink,
-            config.whatsappLabel ||
-            'واتساب'
-        );
-
+    const whatsapp = document.getElementById('rootContactWhatsapp');
+    const whatsappNumber = String(config.whatsappNumber || '')
+        .replace(/\D/g, '');
+    if (whatsapp) {
+        whatsapp.href = whatsappNumber
+            ? 'https://wa.me/' + whatsappNumber : '#';
     }
+    const whatsappLabel = document.getElementById('rootContactWhatsappLabel');
+    if (whatsappLabel) whatsappLabel.textContent =
+        config.whatsappLabel || 'واتساب';
+    const whatsappValue = document.getElementById('rootContactWhatsappValue');
+    if (whatsappValue) whatsappValue.textContent =
+        config.phoneLabel || config.phoneNumber || whatsappNumber;
 
-
-    const phoneLink =
-        document.querySelector(
-            'a[href^="tel:"]'
-        );
-
-
-    if (
-        phoneLink
-    ) {
-
-        if (
-            config.phoneNumber
-        ) {
-
-            phoneLink.href =
-                `tel:${config.phoneNumber}`;
-
-        }
-
-
-        replaceLinkText(
-            phoneLink,
-            config.phoneLabel ||
-            config.phoneNumber ||
-            'اتصال'
-        );
-
-    }
+    const phone = document.getElementById('rootContactPhone');
+    const phoneNumber = String(config.phoneNumber || '')
+        .replace(/[^+\d]/g, '');
+    if (phone) phone.href = phoneNumber ? 'tel:' + phoneNumber : '#';
+    const phoneValue = document.getElementById('rootContactPhoneValue');
+    if (phoneValue) phoneValue.textContent =
+        config.phoneLabel || phoneNumber || 'اتصال';
 
 }
 
@@ -2469,11 +2405,15 @@ function rootTypeNarrator(
      * Longer text types slightly faster.
      */
     const delay =
-        characters.length > 160
-            ? 52
-            : characters.length > 80
-                ? 59
-                : 64;
+        characters.length >
+            160
+            ? 11
+            :
+        characters.length >
+            80
+            ? 16
+            :
+            23;
 
 
     let index =
@@ -7661,363 +7601,429 @@ function rootPulseLogoWithSpeech(
 
 
 /*
- * ROOT SPEECH ENGINE V20
- * Single active narrator controller. Older declarations above are
- * replaced by these final definitions for the live page.
- *
- * Web Speech voices are supplied by the visitor's device: prefer
- * named male voices in the requested language; there is no reliable
- * standard gender field or guaranteed cross-device male voice.
+ * Override the previous narrator stop so speech motion
+ * always returns smoothly to normal size.
  */
-let rootSpeechSession = null;
-let rootNarratorLastMessage = '';
-let rootKnownNarratorVoices = [];
+function rootNarratorStop(
+    hide = false
+) {
 
-const rootMaleVoiceHints = {
-    ar: [
-        'hamed', 'hamad', 'naayf', 'naif', 'majed', 'maged',
-        'omar', 'tarek', 'tarik', 'fahd', 'bassam', 'youssef',
-        'yousef', 'karim', 'ibrahim', 'male', 'حامد',
-        'نايف', 'ماجد', 'عمر', 'طارق', 'فهد', 'بسام',
-        'يوسف', 'كريم', 'إبراهيم', 'ذكر'
-    ],
-    en: [
-        'male', 'david', 'guy', 'mark', 'george', 'daniel',
-        'alex', 'ryan', 'thomas', 'aaron', 'oliver', 'fred',
-        'john', 'andrew', 'matthew', 'richard', 'eddie',
-        'eric', 'brian', 'alan', 'arthur', 'william'
-    ]
-};
-
-const rootFemaleVoiceHints = [
-    'female', 'zira', 'aria', 'jenny', 'samantha', 'susan',
-    'karen', 'hazel', 'victoria', 'fiona', 'tessa', 'ava',
-    'allison', 'emma', 'sara', 'salma', 'layla', 'laila',
-    'amira', 'fatima', 'maryam', 'hana', 'أنثى'
-];
-
-function rootRefreshNarratorVoices() {
-    if (!('speechSynthesis' in window)) return [];
-    try {
-        const current = window.speechSynthesis.getVoices();
-        if (current.length) rootKnownNarratorVoices = current;
-    } catch (error) {
-        console.warn('Narrator voice discovery failed:', error);
-    }
-    return rootKnownNarratorVoices;
-}
-
-if ('speechSynthesis' in window) {
-    rootRefreshNarratorVoices();
-    if (window.speechSynthesis.addEventListener) {
-        window.speechSynthesis.addEventListener(
-            'voiceschanged', rootRefreshNarratorVoices
-        );
-    }
-    window.addEventListener('pageshow', rootRefreshNarratorVoices);
-    document.addEventListener(
-        'pointerdown',
-        rootRefreshNarratorVoices,
-        { passive: true, capture: true }
-    );
-}
-
-function rootChooseNarratorVoice(language, excludedNames = new Set()) {
-    const voices = rootRefreshNarratorVoices();
-    const requested = String(language || 'ar-SA').toLowerCase();
-    const prefix = requested.split('-')[0];
-    const hints = rootMaleVoiceHints[prefix] || rootMaleVoiceHints.en;
-    const sameLanguage = voices.filter(voice =>
-        String(voice.lang || '').toLowerCase().split('-')[0] === prefix
-    );
-
-    const scored = sameLanguage.map(voice => {
-        const name = (String(voice.name || '') + ' ' +
-            String(voice.voiceURI || '')).toLowerCase();
-        const male = hints.some(hint => name.includes(hint));
-        const female = rootFemaleVoiceHints.some(hint => name.includes(hint));
-        let score = male ? 500 : 0;
-        if (female && !male) score -= 600;
-        if (String(voice.lang || '').toLowerCase() === requested) score += 35;
-        if (voice.localService) score += 5;
-        if (voice.default) score += 1;
-        return { voice, score };
-    }).sort((a, b) => b.score - a.score);
-
-    const choice = scored.find(item =>
-        item.score >= 0 &&
-        !excludedNames.has(item.voice.voiceURI || item.voice.name)
-    );
-    return choice ? choice.voice : null;
-}
-
-function rootNarratorRetryButton(show) {
-    const bubble = document.getElementById('rootNarratorBubble');
-    if (!bubble) return;
-
-    let button = document.getElementById('rootNarratorRetry');
-    if (!button) {
-        button = document.createElement('button');
-        button.id = 'rootNarratorRetry';
-        button.type = 'button';
-        button.className = 'root-narrator-retry';
-        button.addEventListener('click', event => {
-            event.stopPropagation();
-            if (rootNarratorLastMessage) {
-                rootNarratorAnnounce({
-                    name: 'speech-retry',
-                    desc: rootNarratorLastMessage
-                });
-            }
-        });
-        bubble.appendChild(button);
-    }
-
-    const arabic = rootNarratorLanguage(rootNarratorLastMessage) === 'ar-SA';
-    button.textContent = arabic ? '🔊 إعادة تشغيل الصوت' : '🔊 Play voice';
-    button.setAttribute('aria-label', button.textContent);
-    button.hidden = !show;
-}
-
-function rootClearSpeechSessionTimers(state) {
-    if (!state) return;
-    (state.timers || []).forEach(timer => clearTimeout(timer));
-    state.timers = [];
-}
-
-function rootNarratorStop(hide = false) {
     rootNarratorToken++;
 
-    if (rootNarratorTypingTimer) {
-        clearTimeout(rootNarratorTypingTimer);
-        rootNarratorTypingTimer = null;
+
+    if (
+        rootNarratorTypingTimer
+    ) {
+
+        clearTimeout(
+            rootNarratorTypingTimer
+        );
+
+        rootNarratorTypingTimer =
+            null;
+
     }
 
-    rootClearSpeechSessionTimers(rootSpeechSession);
-    rootSpeechSession = null;
 
-    if ('speechSynthesis' in window) {
-        const synth = window.speechSynthesis;
-        try {
-            if (synth.speaking || synth.pending || synth.paused) {
-                synth.cancel();
-            }
-        } catch (error) {
-            console.warn('Narrator speech cancel failed:', error);
-        }
+    if (
+        'speechSynthesis' in
+        window
+    ) {
+
+        window
+            .speechSynthesis
+            .cancel();
+
     }
+
 
     rootResetSpeechLogoMotion();
-    rootNarratorRetryButton(false);
-    if (hide) {
-        document.getElementById('rootLogoNarrator')
-            ?.classList.remove('show');
+
+
+    if (
+        hide
+    ) {
+
+        const wrap =
+            document.getElementById(
+                'rootLogoNarrator'
+            );
+
+
+        wrap?.classList.remove(
+            'show'
+        );
+
     }
+
 }
 
-function rootSplitNarration(text) {
-    const words = String(text || '').trim().match(/\S+\s*/gu) || [];
-    const chunks = [];
-    let chunk = '';
 
-    for (const word of words) {
-        if (chunk && chunk.length + word.length > 115) {
-            chunks.push(chunk.trim());
-            chunk = '';
-        }
-        chunk += word;
-        if (chunk.length >= 46 && /[.!?؟؛،,;]\s*$/u.test(chunk)) {
-            chunks.push(chunk.trim());
-            chunk = '';
-        }
+/*
+ * Desktop keeps its previous native speech voice completely unchanged.
+ * On mobile there is no cross-device voice identity in Web Speech API.
+ * If the OS exposes an explicitly named male voice, prefer it.
+ */
+function rootMobileMaleVoice(voices, language) {
+    if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')) {
+        return null;
     }
-    if (chunk.trim()) chunks.push(chunk.trim());
-    return chunks;
+
+    const requestedLanguage = String(language || '').toLowerCase();
+    const languagePrefix = requestedLanguage.split('-')[0];
+    const maleNames = languagePrefix === 'ar'
+        ? ['hamed', 'hamad', 'majed', 'maged', 'naayf', 'naif',
+           'omar', 'tarek', 'tarik', 'rami', 'bassam',
+           'youssef', 'yousef', 'male', 'حامد', 'ماجد', 'نايف',
+           'عمر', 'طارق', 'بسام', 'يوسف', 'ذكر']
+        : ['david', 'guy', 'daniel', 'george', 'alex', 'ryan',
+           'thomas', 'aaron', 'oliver', 'john', 'mark',
+           'matthew', 'male'];
+    const femaleNames = ['female', 'zira', 'aria', 'jenny', 'samantha',
+        'karen', 'victoria', 'ava', 'salma', 'layla', 'laila',
+        'sara', 'amira', 'fatima', 'maryam', 'أنثى'];
+
+    const matching = voices.filter(item =>
+        String(item.lang || '').toLowerCase().split('-')[0] === languagePrefix
+    );
+    return matching.find(item => {
+        const name = String(item.name || '').toLowerCase();
+        return maleNames.some(hint => name.includes(hint)) &&
+            !femaleNames.some(hint => name.includes(hint));
+    }) || null;
 }
 
-function rootSpeakNarrator(text, token) {
-    const value = String(text || '').trim();
-    if (!value || token !== rootNarratorToken) return;
-    rootNarratorLastMessage = value;
 
-    if (!('speechSynthesis' in window) ||
-        typeof SpeechSynthesisUtterance === 'undefined') {
-        rootNarratorRetryButton(true);
+/*
+ * Narrator speech synchronized with word boundaries.
+ */
+function rootSpeakNarrator(
+    text,
+    token
+) {
+
+    const value =
+        String(
+            text || ''
+        )
+        .trim();
+
+
+    if (
+        !value ||
+        !(
+            'speechSynthesis' in
+            window
+        )
+    ) {
+
         return;
+
     }
 
-    const synth = window.speechSynthesis;
-    const language = rootNarratorLanguage(value);
-    const state = {
-        token,
-        chunks: rootSplitNarration(value),
-        position: 0,
-        attempts: 0,
-        badVoices: new Set(),
-        timers: []
-    };
-    rootSpeechSession = state;
-    rootNarratorRetryButton(false);
-    rootRefreshNarratorVoices();
 
-    const active = () =>
-        token === rootNarratorToken && rootSpeechSession === state;
+    rootResetSpeechLogoMotion();
 
-    const schedule = (callback, ms) => {
-        const timer = setTimeout(callback, ms);
-        state.timers.push(timer);
-        return timer;
-    };
 
-    const finishAll = failed => {
-        if (!active()) return;
-        rootClearSpeechSessionTimers(state);
-        rootSpeechSession = null;
-        rootResetSpeechLogoMotion();
-        rootNarratorRetryButton(failed);
-        if (failed) console.warn('ROOT narrator: speech playback was unavailable.');
-    };
+    const language =
+        rootNarratorLanguage(
+            value
+        );
 
-    const playChunk = () => {
-        if (!active()) return;
 
-        if (state.position >= state.chunks.length) {
-            finishAll(false);
-            return;
-        }
+    const speech =
+        new SpeechSynthesisUtterance(
+            value
+        );
 
-        rootClearSpeechSessionTimers(state);
-        rootResetSpeechLogoMotion();
 
-        const chunk = state.chunks[state.position];
-        const speech = new SpeechSynthesisUtterance(chunk);
-        const voice = rootChooseNarratorVoice(language, state.badVoices);
-        speech.lang = voice ? voice.lang : language;
-        if (voice) speech.voice = voice;
-        speech.rate = 0.96;
-        speech.pitch = voice ? 0.90 : 0.72;
-        speech.volume = 1;
+    speech.lang =
+        language;
 
-        let settled = false;
-        let started = false;
-        let boundaries = false;
-        let wordIndex = 0;
-        const words = [...chunk.matchAll(/\S+/gu)];
 
-        const clearPulse = () => {
-            if (rootSpeechFallbackTimer) {
-                clearTimeout(rootSpeechFallbackTimer);
-                rootSpeechFallbackTimer = null;
+    speech.rate =
+        .94;
+
+
+    speech.pitch =
+        1;
+
+
+    speech.volume =
+        1;
+
+
+    const voices =
+        window
+            .speechSynthesis
+            .getVoices();
+
+
+    const prefix =
+        language
+            .split(
+                '-'
+            )[0]
+            .toLowerCase();
+
+
+    const voice =
+        rootMobileMaleVoice(voices, language)
+        ||
+        voices.find(
+            item =>
+                String(
+                    item.lang ||
+                    ''
+                )
+                .toLowerCase() ===
+                language
+                    .toLowerCase()
+        )
+        ||
+        voices.find(
+            item =>
+                String(
+                    item.lang ||
+                    ''
+                )
+                .toLowerCase()
+                .startsWith(
+                    prefix
+                )
+        );
+
+
+    if (
+        voice
+    ) {
+
+        speech.voice =
+            voice;
+
+    }
+
+
+    let boundaryReceived =
+        false;
+
+
+    let fallbackWordIndex =
+        0;
+
+
+    const fallbackWords =
+        [
+            ...value.matchAll(
+                /\S+/gu
+            )
+        ];
+
+
+    speech.onstart =
+        () => {
+
+            if (
+                token !==
+                rootNarratorToken
+            ) {
+                return;
             }
+
+
+            const logo =
+                document.getElementById(
+                    'labLogo'
+                );
+
+
+            logo?.classList.add(
+                'root-narrator-speaking'
+            );
+
+
+            /*
+             * Wait briefly for real word-boundary events.
+             * If browser does not provide them, use a
+             * deterministic fallback rhythm.
+             */
+            const fallbackPulse =
+                () => {
+
+                    if (
+                        token !==
+                        rootNarratorToken ||
+                        boundaryReceived
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        fallbackWordIndex >=
+                        fallbackWords.length
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const item =
+                        fallbackWords[
+                            fallbackWordIndex
+                        ];
+
+
+                    rootPulseLogoWithSpeech(
+                        value,
+                        item.index,
+                        (
+                            fallbackWordIndex *
+                            .31
+                        )
+                    );
+
+
+                    fallbackWordIndex++;
+
+
+                    rootSpeechFallbackTimer =
+                        setTimeout(
+                            fallbackPulse,
+                            310
+                        );
+
+                };
+
+
+            rootSpeechFallbackTimer =
+                setTimeout(
+                    fallbackPulse,
+                    500
+                );
+
         };
 
-        const failChunk = reason => {
-            if (settled || !active()) return;
-            settled = true;
-            clearPulse();
-            rootClearSpeechSessionTimers(state);
+
+    speech.onboundary =
+        event => {
+
+            if (
+                token !==
+                rootNarratorToken
+            ) {
+
+                return;
+
+            }
+
+
+            boundaryReceived =
+                true;
+
+
+            if (
+                rootSpeechFallbackTimer
+            ) {
+
+                clearTimeout(
+                    rootSpeechFallbackTimer
+                );
+
+                rootSpeechFallbackTimer =
+                    null;
+
+            }
+
+
+            /*
+             * Chrome exposes word boundaries here.
+             */
+            rootPulseLogoWithSpeech(
+                value,
+                event.charIndex,
+                event.elapsedTime
+            );
+
+        };
+
+
+    const finish =
+        () => {
+
+            if (
+                token !==
+                rootNarratorToken
+            ) {
+
+                return;
+
+            }
+
+
             rootResetSpeechLogoMotion();
 
-            // A browser autoplay/user-gesture rejection must be retried by click.
-            const blocked = reason === 'not-allowed' ||
-                reason === 'service-not-allowed';
-            if (!blocked && state.attempts < 1) {
-                state.attempts++;
-                if (voice) state.badVoices.add(voice.voiceURI || voice.name);
-                try { synth.cancel(); } catch {}
-                schedule(playChunk, 180);
-            } else {
-                finishAll(true);
-            }
         };
 
-        speech.onstart = () => {
-            if (!active() || settled) return;
-            started = true;
-            document.getElementById('labLogo')
-                ?.classList.add('root-narrator-speaking');
 
-            const pulseFallback = () => {
-                if (!active() || settled || boundaries ||
-                    wordIndex >= words.length) return;
-                const word = words[wordIndex];
-                rootPulseLogoWithSpeech(
-                    chunk, word.index, wordIndex * 0.31
-                );
-                wordIndex++;
-                rootSpeechFallbackTimer = setTimeout(pulseFallback, 310);
-            };
-            rootSpeechFallbackTimer = setTimeout(pulseFallback, 500);
-        };
+    speech.onend =
+        finish;
 
-        speech.onboundary = event => {
-            if (!active() || settled) return;
-            if (event.name && event.name !== 'word') return;
-            boundaries = true;
-            clearPulse();
-            rootPulseLogoWithSpeech(
-                chunk, event.charIndex || 0, event.elapsedTime || 0
+
+    speech.onerror =
+        finish;
+
+
+    window
+        .speechSynthesis
+        .cancel();
+
+
+    /*
+     * Some browsers populate voices slightly later.
+     */
+    if (
+        voices.length
+    ) {
+
+        window
+            .speechSynthesis
+            .speak(
+                speech
             );
-        };
 
-        speech.onend = () => {
-            if (!active() || settled) return;
-            settled = true;
-            clearPulse();
-            rootClearSpeechSessionTimers(state);
-            state.position++;
-            state.attempts = 0;
-            // Sequential short chunks avoid long-utterance stalls on mobile.
-            schedule(playChunk, 40);
-        };
+    }
 
-        speech.onerror = event => {
-            if (event.error === 'canceled' && !active()) return;
-            console.warn('ROOT narrator speech error:', event.error);
-            failChunk(event.error || 'unknown');
-        };
+    else {
 
-        // Recover from a silent start and from browsers that omit onend.
-        schedule(() => {
-            if (!active() || settled || started) return;
-            try { if (synth.paused) synth.resume(); } catch {}
-        }, 1100);
+        setTimeout(
+            () => {
 
-        schedule(() => {
-            if (!active() || settled || started) return;
-            if (!synth.speaking) failChunk('silent-start');
-        }, 4800);
+                if (
+                    token ===
+                    rootNarratorToken
+                ) {
 
-        const maxDuration = Math.min(
-            32000, Math.max(14000, chunk.length * 200 + 6000)
+                    window
+                        .speechSynthesis
+                        .speak(
+                            speech
+                        );
+
+                }
+
+            },
+            120
         );
-        schedule(() => {
-            if (!active() || settled) return;
-            failChunk('timed-out');
-        }, maxDuration);
 
-        try {
-            if (synth.paused) synth.resume();
-            synth.speak(speech);
-        } catch (error) {
-            console.warn('ROOT narrator speak failed:', error);
-            failChunk('speak-exception');
-        }
-    };
+    }
 
-    playChunk();
 }
 
-// Reopen any paused narration when a mobile browser returns to the page.
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState !== 'visible' || !rootSpeechSession ||
-        !('speechSynthesis' in window)) return;
-    try {
-        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-    } catch {}
-});
-
-/* ROOT SPEECH RHYTHM LOGO V16 END; V20 ACTIVE */
+/* ROOT SPEECH RHYTHM LOGO V16 END */
 
 
 
@@ -8713,38 +8719,169 @@ async function rootWaitForCurrentLogoMotion(
    START FINAL TAB NARRATION
    ============================================================ */
 
-function rootScheduleFinalTabNarration(button, key) {
-    rootCancelCurrentTabNarration(true);
-    const generation = rootTabNavGeneration;
-    const text = String(rootTabIntroConfig[key] || '').trim();
+async function rootScheduleFinalTabNarration(
+    button,
+    key
+) {
 
-    if (!text || !button?.classList.contains('active')) return;
+    /*
+     * Cancels old About / Products / Pricing requests.
+     */
+    rootCancelCurrentTabNarration(
+        true
+    );
 
-    // Start within the click gesture: mobile browsers can suppress
-    // speech that is scheduled after the logo animation has finished.
-    rootTabNarrationActive = true;
-    rootNarratorAnnounce({
-        name: 'tab-' + key,
-        desc: text
-    });
 
-    // Only the bubble's POSITION waits for the real logo movement.
-    requestAnimationFrame(() => {
-        if (generation === rootTabNavGeneration) {
-            rootPositionNarratorBubble();
-        }
-    });
+    const generation =
+        rootTabNavGeneration;
 
-    rootWaitForCurrentLogoMotion(generation)
-        .then(finished => {
-            if (finished && generation === rootTabNavGeneration &&
-                button.classList.contains('active')) {
-                rootPositionNarratorBubble();
-            }
-        })
-        .catch(error => {
-            console.warn('Narrator logo-position update failed:', error);
+
+    const text =
+        String(
+            rootTabIntroConfig[
+                key
+            ] ||
+            ''
+        )
+        .trim();
+
+
+    if (
+        !text
+    ) {
+
+        return;
+
+    }
+
+
+    const finished =
+        await rootWaitForCurrentLogoMotion(
+            generation
+        );
+
+
+    if (
+        !finished
+        ||
+        generation !==
+            rootTabNavGeneration
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Most important race-condition check.
+     *
+     * If another tab became active,
+     * this narration is DEAD.
+     */
+    if (
+        !button.classList.contains(
+            'active'
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * Small final settle only.
+     */
+    await new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                55
+            )
+    );
+
+
+    if (
+        generation !==
+        rootTabNavGeneration
+        ||
+        !button.classList.contains(
+            'active'
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    rootTabNarrationActive =
+        true;
+
+
+    if (
+        typeof rootNarratorAnnounce ===
+        'function'
+    ) {
+
+        rootNarratorAnnounce({
+
+            name:
+                `tab-${key}`,
+
+            desc:
+                text
+
         });
+
+    }
+
+
+    /*
+     * Force a fresh position AFTER the final logo
+     * has reached its real destination.
+     */
+    requestAnimationFrame(
+        () => {
+
+            requestAnimationFrame(
+                () => {
+
+                    if (
+                        generation !==
+                        rootTabNavGeneration
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        typeof rootPositionNarratorBubble ===
+                        'function'
+                    ) {
+
+                        rootPositionNarratorBubble();
+
+                    }
+
+                    else if (
+                        typeof rootPositionNarrator ===
+                        'function'
+                    ) {
+
+                        rootPositionNarrator();
+
+                    }
+
+                }
+            );
+
+        }
+    );
+
 }
 
 
@@ -8857,3 +8994,51 @@ rootLoadTabIntroConfig();
 /* ROOT LIGHT TAB NARRATOR V19 END */
 
 
+
+
+
+/* ============================================================
+   ROOT CONTACT POPOVER V21
+   ============================================================ */
+(function rootInitContactPanel() {
+    const widget = document.getElementById('rootContactWidget');
+    const trigger = document.getElementById('rootContactTrigger');
+    const panel = document.getElementById('rootContactPanel');
+    const close = document.getElementById('rootContactClose');
+    if (!widget || !trigger || !panel || !close) return;
+
+    function setOpen(open, restoreFocus = false) {
+        widget.classList.toggle('is-open', open);
+        trigger.setAttribute('aria-expanded', String(open));
+        panel.setAttribute('aria-hidden', String(!open));
+        panel.inert = !open;
+        if (open) {
+            close.focus({ preventScroll: true });
+        } else if (restoreFocus) {
+            trigger.focus({ preventScroll: true });
+        }
+    }
+
+    setOpen(false);
+
+    trigger.addEventListener('click', () => {
+        setOpen(!widget.classList.contains('is-open'));
+    });
+
+    close.addEventListener('click', () => setOpen(false, true));
+
+    document.addEventListener('pointerdown', event => {
+        if (widget.classList.contains('is-open') &&
+            !widget.contains(event.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && widget.classList.contains('is-open')) {
+            setOpen(false, true);
+        }
+    });
+
+    panel.querySelectorAll('a[href]').forEach(link => {
+        link.addEventListener('click', () => setOpen(false));
+    });
+})();
