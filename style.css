@@ -3772,26 +3772,174 @@ body.about-view-active #aboutLogoImage {
 
 
 /* =========================================================
-   ROOT DESKTOP PRICE CATALOG MARGINS V21
+   ROOT PRICING FRAME V25
+   Stationary frame + scrolling images, sized to the viewport.
    ========================================================= */
-@media (min-width: 1025px) {
+
+/* Keep the body fixed only when the price catalog is active. */
+body.pricing-view-active {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/*
+ * Anchoring the catalog to the viewport (not .main-content) removes
+ * the vertical centering gap above it. All four frame sides remain
+ * stationary even as the photos scroll below.
+ */
+#pricingScrollContainer {
+    position: fixed;
+    z-index: 40;
+    top: 93px;
+    bottom: 18px;
+    left: 50%;
+    right: auto;
+    width: min(940px, calc(100vw - 290px)) !important;
+    max-width: 940px !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 8px !important;
+    transform: translateX(-50%);
+    overflow: hidden;
+    isolation: isolate;
+
+    border: 1px solid rgba(123, 197, 255, .65);
+    border-radius: 24px;
+    background: linear-gradient(
+        145deg,
+        rgba(22, 57, 102, .95),
+        rgba(5, 19, 40, .97) 42%,
+        rgba(10, 32, 62, .98)
+    );
+    box-shadow:
+        0 18px 52px rgba(0, 0, 0, .57),
+        0 0 38px rgba(34, 126, 217, .14),
+        inset 0 1px 0 rgba(218, 240, 255, .21),
+        inset 0 0 26px rgba(38, 120, 208, .1);
+}
+
+/* Permanent inset border: this is OUTSIDE the scrolled element. */
+#pricingScrollContainer::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    z-index: 3;
+    border: 1px solid rgba(128, 199, 255, .29);
+    border-radius: 19px;
+    pointer-events: none;
+}
+
+/* Fine blue highlight on the TOP edge of the fixed frame. */
+#pricingScrollContainer::after {
+    content: "";
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 12%;
+    width: 76%;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(122, 214, 255, .92),
+        rgba(49, 143, 255, .94),
+        transparent
+    );
+    box-shadow: 0 0 16px rgba(57, 160, 255, .48);
+    pointer-events: none;
+}
+
+/* Only this nested area scrolls; the frame border cannot move. */
+#pricingScrollWrapper {
+    position: relative;
+    z-index: 1;
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    padding: 5px 6px 9px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(92, 172, 250, .4) transparent;
+}
+
+#pricingScrollWrapper::-webkit-scrollbar {
+    display: block;
+    width: 5px;
+    height: 5px;
+}
+
+#pricingScrollWrapper::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(95, 170, 240, .4);
+}
+
+#pricingScrollTrack {
+    width: 100%;
+    padding: 0;
+    gap: 11px;
+}
+
+#pricingScrollTrack .pricing-page-image {
+    overflow: hidden;
+    border-radius: 15px;
+    background: #07152a;
+    box-shadow:
+        0 0 0 1px rgba(95, 170, 240, .18),
+        0 6px 22px rgba(0, 0, 0, .27);
+}
+
+#pricingScrollTrack .pricing-page-image img {
+    border-radius: 15px;
+}
+
+/*
+ * On mobile leave the bottom edge ABOVE the floating audio/contact
+ * controls so every side of the frame remains visible.
+ */
+@media (max-width: 700px) {
     #pricingScrollContainer {
-        width: min(100%, 940px) !important;
-        max-width: 940px !important;
-        margin-inline: auto;
-        padding-inline: 18px;
+        top: calc(82px + env(safe-area-inset-top, 0px));
+        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        left: 50%;
+        width: calc(100vw - 20px) !important;
+        max-width: none !important;
+        padding: 5px !important;
+        border-radius: 18px;
+    }
+
+    #pricingScrollContainer::before {
+        inset: 4px;
+        border-radius: 14px;
     }
 
     #pricingScrollWrapper {
-        width: 100%;
+        padding: 4px 5px 7px;
     }
 
     #pricingScrollTrack {
-        width: 100%;
+        gap: 8px;
     }
 
-    #pricingScrollTrack .pricing-page-image {
-        box-shadow: 0 0 0 1px rgba(82, 154, 221, .18);
+    #pricingScrollTrack .pricing-page-image,
+    #pricingScrollTrack .pricing-page-image img {
+        border-radius: 10px;
+    }
+}
+
+@media (max-height: 480px) and (min-width: 701px) {
+    #pricingScrollContainer {
+        top: 85px;
+        bottom: 8px;
     }
 }
 
@@ -4027,31 +4175,11 @@ body.about-view-active #aboutLogoImage {
     padding-top: 142px;
 }
 
-#pricingScrollContainer {
-    height: calc(100vh - 184px);
-    height: calc(100dvh - 184px);
-    max-height: calc(100vh - 184px);
-    max-height: calc(100dvh - 184px);
-}
-
 @media (max-width: 700px) {
     .main-content {
         padding-top: 110px;
     }
 
-    #pricingScrollContainer {
-        height: calc(100vh - 155px);
-        height: calc(100dvh - 155px);
-        max-height: calc(100vh - 155px);
-        max-height: calc(100dvh - 155px);
-    }
-}
-
-@media (max-height: 520px) {
-    #pricingScrollContainer {
-        min-height: 220px;
-        height: auto;
-    }
 }
 
 
