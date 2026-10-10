@@ -4685,10 +4685,10 @@ function activateNav(
             '.nav-btn'
         )
         .forEach(
-            button =>
-                button.classList.remove(
-                    'active'
-                )
+            button => {
+                button.classList.remove('active');
+                button.setAttribute('aria-pressed', 'false');
+            }
         );
 
 
@@ -4699,6 +4699,8 @@ function activateNav(
         activeButton.classList.add(
             'active'
         );
+
+        activeButton.setAttribute('aria-pressed', 'true');
 
     }
 }
@@ -6426,10 +6428,17 @@ function rootPositionNarratorBubble() {
         wrap.style.right =
             '12px';
 
+        const floatingNav =
+            document.querySelector('.root-floating-nav');
+
+        const navBottom = floatingNav
+            ? floatingNav.getBoundingClientRect().bottom
+            : 0;
+
         wrap.style.top =
             `${Math.min(
                 window.innerHeight - 175,
-                rect.bottom + 12
+                Math.max(rect.bottom + 12, navBottom + 12)
             )}px`;
 
         wrap.style.transform =
