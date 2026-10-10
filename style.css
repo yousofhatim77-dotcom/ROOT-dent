@@ -119,7 +119,8 @@ video {
     left: 50%;
     width: max-content;
     max-width: calc(100vw - 28px);
-    z-index: 9500;
+    /* Under the project (400), photo viewer (2000), and dialogs (500+). */
+    z-index: 300;
     transform: translateX(-50%);
     -webkit-transform: translateX(-50%);
 }
