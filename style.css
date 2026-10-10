@@ -3726,3 +3726,22 @@ body.about-view-active #aboutLogoImage {
 
 
 /* ROOT SPEECH RHYTHM STYLE V16 END */
+
+/* Narration replay only appears when automatic speech fails. */
+.root-narrator-retry {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 9px;
+    padding: 6px 11px;
+    color: #fff;
+    background: rgba(37, 115, 197, .28);
+    border: 1px solid rgba(145, 200, 255, .52);
+    border-radius: 20px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .78rem;
+    line-height: 1.4;
+}
+.root-narrator-retry[hidden] {
+    display: none !important;
+}
