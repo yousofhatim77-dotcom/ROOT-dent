@@ -1302,6 +1302,8 @@ function openProject(
     showOverlay(
         projectModal
     );
+
+    rootAppendViewHistory('project');
 }
 
 
@@ -3228,6 +3230,8 @@ function openViewer(
 
     document.body.style.overflow =
         'hidden';
+
+    rootAppendViewHistory('viewer');
 
 }
 
@@ -6933,31 +6937,67 @@ function rootPricingIsOpen() {
 }
 
 
-/*
- * Mobile back protection V24.
- *
- * A browser cannot keep an Android tab alive by force. We protect
- * navigation with same-page history states; the second quick Back
- * opens a safe in-tab exit screen and never leaves this website.
- */
+/* ROOT MOBILE BACK V27: REAL USER-ACTIVATED HISTORY */
 const ROOT_BACK_DOUBLE_MS = 2000;
 let rootMobileGuardInitialized = false;
-let rootMobileUserPrimed = false;
+// Guard is initialized on the first trusted user click.
 
-function rootPushBackGuard(force = false) {
-    if (!rootIsMobileNavigation() ||
-        (!force && history.state?.rootDentalGuard)) return;
+/*
+ * V27 — Chrome Android skips history entries made before a real user
+ * gesture. Install listeners now; create history only on trusted clicks.
+ */
+const ROOT_BACK_LEVEL_KEY = 'rootDentalBackLevel';
+let rootUserActivatedHistory = false;
 
+function rootBackState(level, view = 'home') {
+    return {
+        ...(history.state && typeof history.state === 'object'
+            ? history.state : {}),
+        rootDentalBackVersion: 27,
+        [ROOT_BACK_LEVEL_KEY]: level,
+        rootDentalView: view
+    };
+}
+
+function rootPushBackGuard() {
+    if (!rootIsMobileNavigation() || !rootUserActivatedHistory) return;
+    const level = history.state?.[ROOT_BACK_LEVEL_KEY];
+    if (!Number.isInteger(level) || level < 0) return;
     try {
-        history.pushState({
-            ...(history.state && typeof history.state === 'object'
-                ? history.state : {}),
-            rootDentalGuard: true,
-            rootDentalGuardVersion: 26
-        }, '', location.href);
+        // Two user-activated steps are reserved for the Products view.
+        for (let next = level + 1; next <= 2; next++) {
+            history.pushState(rootBackState(next), '', location.href);
+        }
         rootBackGuardActive = true;
     } catch (error) {
-        console.warn('ROOT mobile Back protection unavailable:', error);
+        console.warn('ROOT mobile guard could not be added', error);
+    }
+}
+
+function rootActivateHistoryOnClick(event) {
+    if (!rootIsMobileNavigation() || !event.isTrusted) return;
+    try {
+        if (!rootUserActivatedHistory) {
+            rootUserActivatedHistory = true;
+            history.replaceState(rootBackState(0), '', location.href);
+        }
+        // If returning from the soft-exit screen, refresh the two
+        // states only here (NOT from the browser's popstate event).
+        rootPushBackGuard();
+        rootLastBackAttempt = 0;
+    } catch (error) {
+        console.warn('ROOT navigation activation failed', error);
+    }
+}
+
+function rootAppendViewHistory(view) {
+    if (!rootIsMobileNavigation() || !rootUserActivatedHistory) return;
+    const level = history.state?.[ROOT_BACK_LEVEL_KEY];
+    if (!Number.isInteger(level)) return;
+    try {
+        history.pushState(rootBackState(level + 1, view), '', location.href);
+    } catch (error) {
+        console.warn('ROOT view history was not saved', error);
     }
 }
 
@@ -7010,12 +7050,12 @@ function rootShowSafeExitScreen() {
  * Mobile Back V26: popstate is the only navigation signal available
  * to an ordinary website. Never traverse browser history a second time.
  */
-function rootMobileBackHandler() {
+/*
+ * V27: Back consumes an EXISTING history step. Do not create a
+ * replacement entry while handling popstate (Chrome may skip it).
+ */
+function rootMobileBackHandler(event) {
     if (!rootIsMobileNavigation()) return;
-
-    // Re-arm before touching any project/viewer UI, so rapid second
-    // presses don't travel past the site into a previous tab/page.
-    rootPushBackGuard(true);
 
     if (rootExitScreenIsOpen()) {
         rootHideSafeExitScreen();
@@ -7049,50 +7089,33 @@ function rootMobileBackHandler() {
     if (rootLastBackAttempt &&
         now - rootLastBackAttempt <= ROOT_BACK_DOUBLE_MS) {
         rootLastBackAttempt = 0;
-        // Soft exit: leave this browser tab and its URL intact.
         rootShowSafeExitScreen();
         return;
     }
 
     rootLastBackAttempt = now;
-    rootShowBackToast(
-        'اضغط رجوع مرة ثانية خلال ثانيتين للخروج من العرض'
-    );
+    rootShowBackToast('اضغط رجوع مرة ثانية خلال ثانيتين للخروج من العرض');
 }
 
 function rootInitMobileBackGuard() {
-    if (!rootIsMobileNavigation()) return;
+    if (!rootIsMobileNavigation() || rootMobileGuardInitialized) return;
+    rootMobileGuardInitialized = true;
+    window.addEventListener('popstate', rootMobileBackHandler);
 
-    if (!rootMobileGuardInitialized) {
-        rootMobileGuardInitialized = true;
-        window.addEventListener('popstate', rootMobileBackHandler);
+    // On touchscreens, trusted click follows pointerup / real user
+    // activation. The old pointerdown + load guards were skippable.
+    document.addEventListener('click', rootActivateHistoryOnClick, true);
 
-        // Android Chrome can skip synthetic history entries created
-        // before user interaction. Prime a guard on the first tap.
-        const prime = () => {
-            if (rootMobileUserPrimed) return;
-            rootMobileUserPrimed = true;
-            rootPushBackGuard(true);
-        };
-
-        document.addEventListener('pointerdown', prime, {
-            capture: true,
-            passive: true
-        });
-        document.addEventListener('keydown', prime, {
-            capture: true,
-            once: true
-        });
-
-        window.addEventListener('pageshow', () => {
-            rootPushBackGuard();
-        });
-    }
-
-    rootPushBackGuard();
+    document.addEventListener('click', event => {
+        if (!event.isTrusted) return;
+        const nav = event.target?.closest?.('.nav-btn');
+        if (nav?.id === 'navAboutBtn' || nav?.id === 'navPricingBtn') {
+            rootAppendViewHistory(nav.id);
+        }
+    });
 }
 
-// Loaded at the end of <body>: install protection immediately.
+// Just attach handlers; no synthetic history before user activation.
 rootInitMobileBackGuard();
 
 /* ROOT MOBILE BACK GUARD V14 END */
