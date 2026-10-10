@@ -19,7 +19,7 @@
 
     <link
         rel="stylesheet"
-        href="style.css?v=20261010-voice20"
+        href="style.css?v=20261010-contact21"
     >
 
 </head>
@@ -131,72 +131,82 @@
     </main>
 
 
-    <!-- ======================================================
-         FOOTER
-    ======================================================= -->
-
-    <footer class="site-footer">
-
-        <div class="footer-inner">
-
-            <div class="footer-brand">
-
-                <i class="fas fa-tooth"></i>
-
-                <strong></strong>
-
+    <!-- Floating contact menu: replaces the old full-width footer strip -->
+    <div class="root-contact-widget" id="rootContactWidget" dir="rtl">
+        <section
+            class="root-contact-panel"
+            id="rootContactPanel"
+            aria-label="طرق التواصل مع المعمل"
+            aria-hidden="true"
+            inert
+        >
+            <div class="root-contact-panel-header">
+                <div class="root-contact-eyebrow">نحن هنا لمساعدتك</div>
+                <button
+                    class="root-contact-close"
+                    type="button"
+                    id="rootContactClose"
+                    aria-label="إغلاق قائمة التواصل"
+                ><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                <h2 id="rootContactBrand">ROOT dent</h2>
+                <p>اختر وسيلة التواصل المناسبة لك</p>
             </div>
-
-
-            <div class="footer-contacts">
-
+            <div class="root-contact-methods">
                 <a
-                    href="https://www.facebook.com/profile.php?id=61593184389536"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="footer-link"
-                >
-
-                    <i class="fab fa-facebook"></i>
-
-                    فيسبوك
-
-                </a>
-
-
-                <a
+                    class="root-contact-method"
+                    id="rootContactWhatsapp"
                     href="https://wa.me/201040296832"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="footer-link whatsapp-link"
                 >
-
-                    <i class="fab fa-whatsapp"></i>
-
-                    واتساب: 01040296832
-
+                    <span class="root-contact-method-icon root-contact-whatsapp"><i class="fab fa-whatsapp" aria-hidden="true"></i></span>
+                    <span class="root-contact-method-info">
+                        <strong id="rootContactWhatsappLabel">واتساب</strong>
+                        <small id="rootContactWhatsappValue">01040296832</small>
+                    </span>
+                    <i class="fas fa-arrow-up-right-from-square root-contact-method-arrow" aria-hidden="true"></i>
                 </a>
-
-
                 <a
+                    class="root-contact-method"
+                    id="rootContactPhone"
                     href="tel:+201040296832"
-                    class="footer-link phone-link"
                 >
-
-                    <i class="fas fa-phone"></i>
-
-                    01040296832
-
+                    <span class="root-contact-method-icon"><i class="fas fa-phone" aria-hidden="true"></i></span>
+                    <span class="root-contact-method-info">
+                        <strong>اتصل بنا</strong>
+                        <small id="rootContactPhoneValue">01040296832</small>
+                    </span>
+                    <i class="fas fa-arrow-up-right-from-square root-contact-method-arrow" aria-hidden="true"></i>
                 </a>
-
+                <a
+                    class="root-contact-method"
+                    id="rootContactFacebook"
+                    href="https://www.facebook.com/profile.php?id=61593184389536"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    <span class="root-contact-method-icon root-contact-facebook"><i class="fab fa-facebook-f" aria-hidden="true"></i></span>
+                    <span class="root-contact-method-info">
+                        <strong id="rootContactFacebookLabel">فيسبوك</strong>
+                        <small>تابع أحدث أعمال المعمل</small>
+                    </span>
+                    <i class="fas fa-arrow-up-right-from-square root-contact-method-arrow" aria-hidden="true"></i>
+                </a>
             </div>
+        </section>
 
-
-            <p class="footer-copy"></p>
-
-        </div>
-
-    </footer>
+        <button
+            class="root-contact-trigger"
+            id="rootContactTrigger"
+            type="button"
+            aria-label="فتح بيانات التواصل"
+            aria-controls="rootContactPanel"
+            aria-expanded="false"
+        >
+            <i class="fas fa-headset" aria-hidden="true"></i>
+            <span class="root-contact-trigger-label">تواصل معنا</span>
+        </button>
+    </div>
 
 
     <!-- ======================================================
@@ -776,7 +786,7 @@
          SCRIPT
     ======================================================= -->
 
-    <script src="script.js?v=20261010-voice20"></script>
+    <script src="script.js?v=20261010-contact21"></script>
 
 </body>
 
