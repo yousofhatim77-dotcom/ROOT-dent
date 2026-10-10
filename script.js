@@ -6848,9 +6848,12 @@ function rootShowBackToast(
                 toast.classList.remove(
                     'show'
                 );
+                // The second-press window ends WITH the toast.
+                rootLastBackAttempt = 0;
+                rootBackNoticeDeadline = 0;
 
             },
-            1800
+            ROOT_BACK_DOUBLE_MS
         );
 
 }
@@ -6937,139 +6940,176 @@ function rootPricingIsOpen() {
 }
 
 
-/* ROOT MOBILE BACK V27: REAL USER-ACTIVATED HISTORY */
-const ROOT_BACK_DOUBLE_MS = 2000;
-let rootMobileGuardInitialized = false;
-// Guard is initialized on the first trusted user click.
-
-/*
- * V27 — Chrome Android skips history entries made before a real user
- * gesture. Install listeners now; create history only on trusted clicks.
- */
+/* ROOT MOBILE BACK V28: DOUBLE PRESS, EXACTLY WHILE TOAST IS VISIBLE */
+const ROOT_BACK_DOUBLE_MS = 1800; // same lifetime as the visible toast
 const ROOT_BACK_LEVEL_KEY = 'rootDentalBackLevel';
+let rootMobileGuardInitialized = false;
 let rootUserActivatedHistory = false;
+let rootHadEarlierPageOnEntry = false;
+let rootBackNoticeDeadline = 0;
+let rootExpectedForwardFrom = null;
+let rootExitRequested = false;
+let rootPageDidHideOnExit = false;
 
 function rootBackState(level, view = 'home') {
     return {
         ...(history.state && typeof history.state === 'object'
             ? history.state : {}),
-        rootDentalBackVersion: 27,
+        rootDentalBackVersion: 28,
         [ROOT_BACK_LEVEL_KEY]: level,
         rootDentalView: view
     };
 }
 
+function rootReadBackLevel(state = history.state) {
+    const raw = state?.[ROOT_BACK_LEVEL_KEY];
+    return Number.isInteger(raw) && raw >= 0 ? raw : null;
+}
+
+// These states are created ONLY after a genuine user click, because
+// Android Chrome can skip same-document history entries made on load.
 function rootPushBackGuard() {
-    if (!rootIsMobileNavigation() || !rootUserActivatedHistory) return;
-    const level = history.state?.[ROOT_BACK_LEVEL_KEY];
-    if (!Number.isInteger(level) || level < 0) return;
+    if (!rootIsMobileNavigation() || !rootUserActivatedHistory ||
+        rootExitRequested) return;
+    const level = rootReadBackLevel();
+    if (level === null) return;
     try {
-        // Two user-activated steps are reserved for the Products view.
         for (let next = level + 1; next <= 2; next++) {
             history.pushState(rootBackState(next), '', location.href);
         }
         rootBackGuardActive = true;
     } catch (error) {
-        console.warn('ROOT mobile guard could not be added', error);
+        console.warn('ROOT back protection not available:', error);
     }
 }
 
+function rootDismissBackToast() {
+    const toast = document.getElementById('rootBackToast');
+    if (toast) {
+        clearTimeout(toast.rootHideTimer);
+        toast.classList.remove('show');
+    }
+    rootBackNoticeDeadline = 0;
+    rootLastBackAttempt = 0;
+}
+
 function rootActivateHistoryOnClick(event) {
-    if (!rootIsMobileNavigation() || !event.isTrusted) return;
+    if (!rootIsMobileNavigation() || !event.isTrusted ||
+        rootExitRequested) return;
+
     try {
         if (!rootUserActivatedHistory) {
+            rootHadEarlierPageOnEntry = history.length > 1;
             rootUserActivatedHistory = true;
             history.replaceState(rootBackState(0), '', location.href);
         }
-        // If returning from the soft-exit screen, refresh the two
-        // states only here (NOT from the browser's popstate event).
+
+        // A REAL click can replenish consumed Back entries. This does
+        // not run from popstate, where Chrome can ignore new entries.
         rootPushBackGuard();
-        rootLastBackAttempt = 0;
+        rootDismissBackToast();
     } catch (error) {
-        console.warn('ROOT navigation activation failed', error);
+        console.warn('ROOT back activation failed:', error);
     }
 }
 
 function rootAppendViewHistory(view) {
-    if (!rootIsMobileNavigation() || !rootUserActivatedHistory) return;
-    const level = history.state?.[ROOT_BACK_LEVEL_KEY];
-    if (!Number.isInteger(level)) return;
+    if (!rootIsMobileNavigation() || !rootUserActivatedHistory ||
+        rootExitRequested) return;
+    const level = rootReadBackLevel();
+    if (level === null) return;
     try {
         history.pushState(rootBackState(level + 1, view), '', location.href);
     } catch (error) {
-        console.warn('ROOT view history was not saved', error);
+        console.warn('ROOT could not record view navigation:', error);
     }
-}
-
-function rootExitScreenIsOpen() {
-    const screen = document.getElementById('rootSafeExitScreen');
-    return Boolean(screen && !screen.hidden);
-}
-
-function rootHideSafeExitScreen() {
-    const screen = document.getElementById('rootSafeExitScreen');
-    if (screen) screen.hidden = true;
-    rootLastBackAttempt = 0;
-}
-
-function rootShowSafeExitScreen() {
-    let screen = document.getElementById('rootSafeExitScreen');
-
-    if (!screen) {
-        screen = document.createElement('div');
-        screen.id = 'rootSafeExitScreen';
-        screen.className = 'root-safe-exit-screen';
-        screen.setAttribute('role', 'dialog');
-        screen.setAttribute('aria-modal', 'true');
-        screen.setAttribute('aria-label', 'تم الخروج من العرض');
-        screen.innerHTML = `
-            <div class="root-safe-exit-card" dir="rtl">
-                <span class="root-safe-exit-icon" aria-hidden="true">
-                    <i class="fas fa-tooth"></i>
-                </span>
-                <strong>ROOT dent</strong>
-                <h2>تم الخروج من العرض</h2>
-                <p>التبويب لسه مفتوح، وتقدر ترجع للموقع في أي وقت.</p>
-                <button id="rootSafeExitReturn" type="button">
-                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                    العودة للموقع
-                </button>
-            </div>
-        `;
-        document.body.appendChild(screen);
-        screen.querySelector('#rootSafeExitReturn')
-            ?.addEventListener('click', rootHideSafeExitScreen);
-    }
-
-    screen.hidden = false;
-    screen.querySelector('#rootSafeExitReturn')
-        ?.focus({ preventScroll: true });
 }
 
 /*
- * Mobile Back V26: popstate is the only navigation signal available
- * to an ordinary website. Never traverse browser history a second time.
+ * After the FIRST Back on Products, restore the already-created
+ * guard using Forward. This does NOT push any new entries and makes
+ * repeated SLOW attempts require two fresh Back presses forever.
  */
+function rootRestoreBackProtection(level) {
+    if (rootExitRequested || level === null || level >= 2) return;
+    rootExpectedForwardFrom = level;
+    try {
+        history.forward();
+    } catch (error) {
+        rootExpectedForwardFrom = null;
+        console.warn('ROOT forward history unavailable:', error);
+    }
+}
+
+function rootExitSiteAfterDoubleBack(level) {
+    if (rootExitRequested) return;
+    rootExitRequested = true;
+    rootExpectedForwardFrom = null;
+    rootDismissBackToast();
+
+    // A webpage cannot force-close a normal Chrome tab. Prefer the
+    // genuinely previous same-tab page, otherwise try to close a
+    // script-owned/Custom Tab window; finally leave ROOT dent via a
+    // blank replacement instead of showing an artificial exit screen.
+    window.addEventListener('pagehide', () => {
+        rootPageDidHideOnExit = true;
+    }, { once: true });
+
+    if (rootHadEarlierPageOnEntry) {
+        const distance = (level === null ? 2 : level + 1);
+        try {
+            history.go(-Math.max(1, distance));
+        } catch (error) {
+            console.warn('ROOT cannot navigate to previous page:', error);
+        }
+    } else {
+        try {
+            window.close();
+        } catch (error) {
+            console.warn('ROOT window close not permitted:', error);
+        }
+    }
+
+    // If Chrome did not navigate/close, remove this site from view.
+    setTimeout(() => {
+        if (!rootPageDidHideOnExit &&
+            document.visibilityState !== 'hidden') {
+            try {
+                window.location.replace('about:blank');
+            } catch (error) {
+                console.warn('ROOT site exit unavailable:', error);
+            }
+        }
+    }, rootHadEarlierPageOnEntry ? 950 : 350);
+}
+
 /*
- * V27: Back consumes an EXISTING history step. Do not create a
- * replacement entry while handling popstate (Chrome may skip it).
+ * Every popstate happens AFTER Android/Chrome has moved back.
+ * A programmatic Forward fires popstate too: ignore that return,
+ * without treating it as a second user Back.
  */
 function rootMobileBackHandler(event) {
-    if (!rootIsMobileNavigation()) return;
+    if (!rootIsMobileNavigation() || rootExitRequested) return;
 
-    if (rootExitScreenIsOpen()) {
-        rootHideSafeExitScreen();
+    const level = rootReadBackLevel(event?.state);
+
+    if (rootExpectedForwardFrom !== null &&
+        level !== null && level > rootExpectedForwardFrom) {
+        rootExpectedForwardFrom = null;
+        if (level < 2) rootRestoreBackProtection(level);
         return;
     }
+    rootExpectedForwardFrom = null;
 
+    // Real nested views are closed before asking to exit ROOT dent.
     if (rootViewerIsOpen()) {
-        rootLastBackAttempt = 0;
+        rootDismissBackToast();
         if (typeof closeViewer === 'function') closeViewer();
         return;
     }
 
     if (rootProjectIsOpen()) {
-        rootLastBackAttempt = 0;
+        rootDismissBackToast();
         const modal = document.getElementById('projectModal');
         if (modal) {
             if (typeof hideOverlay === 'function') hideOverlay(modal);
@@ -7080,32 +7120,39 @@ function rootMobileBackHandler(event) {
 
     if (document.body.classList.contains('about-view-active') ||
         rootPricingIsOpen()) {
-        rootLastBackAttempt = 0;
+        rootDismissBackToast();
         if (typeof showProducts === 'function') showProducts();
         return;
     }
 
     const now = Date.now();
-    if (rootLastBackAttempt &&
-        now - rootLastBackAttempt <= ROOT_BACK_DOUBLE_MS) {
-        rootLastBackAttempt = 0;
-        rootShowSafeExitScreen();
+    const toast = document.getElementById('rootBackToast');
+    const stillVisible = Boolean(
+        toast?.classList.contains('show') &&
+        rootBackNoticeDeadline > now
+    );
+
+    if (stillVisible) {
+        // Exactly TWO quick Back presses: exit the site, not a fake panel.
+        rootExitSiteAfterDoubleBack(level);
         return;
     }
 
+    // A late Back (after the toast vanished) is a NEW FIRST press.
     rootLastBackAttempt = now;
-    rootShowBackToast('اضغط رجوع مرة ثانية خلال ثانيتين للخروج من العرض');
+    rootBackNoticeDeadline = now + ROOT_BACK_DOUBLE_MS;
+    rootShowBackToast('اضغط ضغطة أخرى للخروج');
+    rootRestoreBackProtection(level);
 }
 
 function rootInitMobileBackGuard() {
     if (!rootIsMobileNavigation() || rootMobileGuardInitialized) return;
     rootMobileGuardInitialized = true;
-    window.addEventListener('popstate', rootMobileBackHandler);
 
-    // On touchscreens, trusted click follows pointerup / real user
-    // activation. The old pointerdown + load guards were skippable.
+    window.addEventListener('popstate', rootMobileBackHandler);
     document.addEventListener('click', rootActivateHistoryOnClick, true);
 
+    // Opened sections still receive meaningful Back steps.
     document.addEventListener('click', event => {
         if (!event.isTrusted) return;
         const nav = event.target?.closest?.('.nav-btn');
@@ -7115,7 +7162,7 @@ function rootInitMobileBackGuard() {
     });
 }
 
-// Just attach handlers; no synthetic history before user activation.
+// Register listeners now; add Back entries after a trusted click.
 rootInitMobileBackGuard();
 
 /* ROOT MOBILE BACK GUARD V14 END */
