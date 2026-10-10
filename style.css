@@ -109,109 +109,184 @@ video {
 
 
 /* =========================================================
-   HEADER
+   ROOT FLOATING NAVIGATION V23
+   Compact glass navigation — no full-width header/stripe
 ========================================================= */
 
-.top-bar {
-    background: var(--bg2);
-
-    border-bottom:
-        1px solid var(--border);
-
-    position: sticky;
-    top: 0;
-
-    z-index: 100;
-
-    box-shadow:
-        0 2px 16px rgba(0, 0, 0, .5);
+.root-floating-nav {
+    position: fixed;
+    top: 19px;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100vw - 28px);
+    z-index: 9500;
+    transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
 }
 
-.top-bar-inner {
-    max-width: 1300px;
-
-    margin: 0 auto;
-
-    padding: 14px 20px;
-
+.root-floating-nav .nav-buttons {
+    position: relative;
     display: flex;
-
+    flex: 0 0 auto;
     align-items: center;
-
-    justify-content: space-between;
-
-    gap: 12px;
-}
-
-.logo-area {
-    display: flex;
-    align-items: center;
-}
-
-.logo-text {
-    display: none;
-}
-
-.header-spacer {
-    width: 140px;
-}
-
-
-/* =========================================================
-   NAV
-========================================================= */
-
-.nav-buttons {
-    display: flex;
-
-    gap: 12px;
-
-    align-items: center;
-
     justify-content: center;
-
-    flex: 1;
-}
-
-.nav-btn {
-    padding: 8px 22px;
-
-    border-radius: 30px;
-
-    background: transparent;
-
-    color: var(--text-m);
-
-    font-weight: 600;
-
-    font-size: .9rem;
-
-    border: 1px solid var(--border);
-
-    transition:
-        all .25s ease;
-
-    white-space: nowrap;
-}
-
-.nav-btn:hover {
-    background: var(--blue);
-
-    color: #fff;
-
-    border-color: var(--blue);
-
-    transform:
-        translateY(-2px);
-
+    gap: 5px;
+    width: 100%;
+    margin: 0;
+    padding: 7px;
+    border: 1px solid rgba(105, 169, 230, .32);
+    border-radius: 999px;
+    background: linear-gradient(
+        140deg,
+        rgba(16, 41, 76, .95),
+        rgba(5, 18, 39, .93)
+    );
     box-shadow:
-        0 4px 16px rgba(21, 101, 192, .3);
+        0 13px 42px rgba(0, 0, 0, .45),
+        0 2px 16px rgba(30, 114, 221, .12),
+        inset 0 1px 0 rgba(203, 231, 255, .12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    isolation: isolate;
 }
 
-.nav-btn.active {
-    background: var(--blue);
+.root-floating-nav .nav-buttons::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset-inline: 26px;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(159, 209, 255, .55),
+        transparent
+    );
+}
+
+.root-floating-nav .nav-btn {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0 20px;
+    white-space: nowrap;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    box-shadow: none;
+    color: #abc5e6;
+    font-size: .91rem;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0;
+    transition:
+        background .22s ease,
+        box-shadow .22s ease,
+        border-color .22s ease,
+        color .22s ease,
+        transform .22s ease;
+}
+
+.root-floating-nav .nav-btn::before {
+    display: inline-block;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: .94rem;
+    line-height: 1;
+    color: #7cbefb;
+    opacity: .9;
+    transition: color .2s ease, opacity .2s ease;
+}
+
+.root-floating-nav #navProductsBtn::before {
+    content: "\f5c9"; /* tooth */
+}
+
+.root-floating-nav #navAboutBtn::before {
+    content: "\f559"; /* award */
+}
+
+.root-floating-nav #navPricingBtn::before {
+    content: "\f02c"; /* tags */
+}
+
+.root-floating-nav .nav-btn:hover:not(.active) {
+    background: rgba(73, 150, 235, .13);
+    border-color: rgba(114, 179, 246, .24);
+    color: #f1f8ff;
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(176, 217, 255, .06);
+}
+
+.root-floating-nav .nav-btn.active {
     color: #fff;
-    border-color: var(--blue);
+    border-color: rgba(117, 200, 255, .45);
+    background: linear-gradient(135deg, #2384e9, #1255b4 80%);
+    box-shadow:
+        0 5px 18px rgba(17, 96, 215, .34),
+        inset 0 1px 0 rgba(222, 241, 255, .23);
+    transform: none;
+    text-shadow: 0 1px 1px rgba(0, 31, 72, .2);
+}
+
+.root-floating-nav .nav-btn.active::before {
+    color: #fff;
+    opacity: 1;
+}
+
+.root-floating-nav .nav-btn:focus-visible {
+    outline: 2px solid #97d5ff;
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    /* The original moving logo remains at the top edge. */
+    .root-floating-nav {
+        top: 85px;
+        max-width: calc(100vw - 20px);
+    }
+
+    .root-floating-nav .nav-buttons {
+        gap: 3px;
+        padding: 5px;
+    }
+
+    .root-floating-nav .nav-btn {
+        min-height: 41px;
+        padding: 0 11px;
+        gap: 6px;
+        font-size: .77rem;
+        font-weight: 700;
+    }
+
+    .root-floating-nav .nav-btn::before {
+        font-size: .84rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .root-floating-nav .nav-btn {
+        padding-inline: 8px;
+        gap: 5px;
+        font-size: .73rem;
+    }
+
+    .root-floating-nav .nav-buttons {
+        gap: 2px;
+        padding: 4px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .root-floating-nav .nav-btn,
+    .root-floating-nav .nav-btn::before {
+        transition: none;
+    }
 }
 
 
@@ -2549,51 +2624,6 @@ textarea.input {
             100%;
     }
 
-    .nav-buttons {
-        gap:
-            4px;
-    }
-
-    .nav-btn {
-        padding:
-            5px 10px;
-
-        font-size:
-            .7rem;
-    }
-
-    .top-bar-inner {
-        flex-wrap:
-            wrap;
-
-        justify-content:
-            center;
-
-        padding:
-            10px 12px;
-    }
-
-    .logo-area {
-        flex:
-            0 0 100%;
-
-        justify-content:
-            center;
-    }
-
-    .nav-buttons {
-        flex:
-            0 0 100%;
-
-        justify-content:
-            center;
-    }
-
-    .header-spacer {
-        display:
-            none;
-    }
-
     .project-title {
         font-size:
             .95rem;
@@ -2811,14 +2841,6 @@ textarea.input {
     .hero-item {
         min-height:
             100px;
-    }
-
-    .nav-btn {
-        padding:
-            3px 8px;
-
-        font-size:
-            .65rem;
     }
 
     .project-sheet {
@@ -3975,5 +3997,38 @@ body.about-view-active #aboutLogoImage {
     .root-contact-panel,
     .root-contact-method {
         transition: none;
+    }
+}
+
+
+/* Balanced content spacing below the floating navigation. */
+.main-content {
+    padding-top: 142px;
+}
+
+#pricingScrollContainer {
+    height: calc(100vh - 184px);
+    height: calc(100dvh - 184px);
+    max-height: calc(100vh - 184px);
+    max-height: calc(100dvh - 184px);
+}
+
+@media (max-width: 700px) {
+    .main-content {
+        padding-top: 158px;
+    }
+
+    #pricingScrollContainer {
+        height: calc(100vh - 205px);
+        height: calc(100dvh - 205px);
+        max-height: calc(100vh - 205px);
+        max-height: calc(100dvh - 205px);
+    }
+}
+
+@media (max-height: 520px) {
+    #pricingScrollContainer {
+        min-height: 220px;
+        height: auto;
     }
 }
