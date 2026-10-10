@@ -6937,33 +6937,27 @@ function rootPricingIsOpen() {
  * Mobile back protection V24.
  *
  * A browser cannot keep an Android tab alive by force. We protect
- * navigation with one same-page history state; the second quick Back
- * returns to a REAL earlier page when one is available, otherwise it
- * shows an in-tab exit screen instead of calling window.close or
- * crossing beyond the only existing history entry.
+ * navigation with same-page history states; the second quick Back
+ * opens a safe in-tab exit screen and never leaves this website.
  */
 const ROOT_BACK_DOUBLE_MS = 2000;
 let rootMobileGuardInitialized = false;
-let rootAllowHistoryExit = false;
+let rootMobileUserPrimed = false;
 
-function rootPushBackGuard() {
+function rootPushBackGuard(force = false) {
     if (!rootIsMobileNavigation() ||
-        rootAllowHistoryExit ||
-        history.state?.rootDentalGuard) return;
+        (!force && history.state?.rootDentalGuard)) return;
 
     try {
-        history.pushState(
-            {
-                ...(history.state && typeof history.state === 'object'
-                    ? history.state : {}),
-                rootDentalGuard: true
-            },
-            '',
-            location.href
-        );
+        history.pushState({
+            ...(history.state && typeof history.state === 'object'
+                ? history.state : {}),
+            rootDentalGuard: true,
+            rootDentalGuardVersion: 26
+        }, '', location.href);
         rootBackGuardActive = true;
     } catch (error) {
-        console.warn('Could not establish mobile back protection:', error);
+        console.warn('ROOT mobile Back protection unavailable:', error);
     }
 }
 
@@ -7012,41 +7006,25 @@ function rootShowSafeExitScreen() {
         ?.focus({ preventScroll: true });
 }
 
-function rootCanReturnToEarlierTabPage() {
-    // Installed PWAs can get destroyed by the OS's back action.
-    // Do not attempt to close their last history entry.
-    if (window.matchMedia('(display-mode: standalone)').matches ||
-        navigator.standalone === true) return false;
-
-    // Navigation API (when supported) knows whether an actual
-    // previous entry exists at the current history position.
-    if (typeof window.navigation?.canGoBack === 'boolean') {
-        return window.navigation.canGoBack;
-    }
-
-    // Current page + our synthetic guard normally means length === 2
-    // for a directly opened tab. A length of 3+ usually means there is
-    // an earlier, same-tab page to which Back can safely return.
-    return history.length > 2;
-}
-
+/*
+ * Mobile Back V26: popstate is the only navigation signal available
+ * to an ordinary website. Never traverse browser history a second time.
+ */
 function rootMobileBackHandler() {
-    if (!rootIsMobileNavigation() || rootAllowHistoryExit) return;
+    if (!rootIsMobileNavigation()) return;
 
-    // The guard is consumed before popstate fires. Re-arm it after
-    // handling each in-site Back so single Back never closes the tab.
-    const rearm = () => rootPushBackGuard();
+    // Re-arm before touching any project/viewer UI, so rapid second
+    // presses don't travel past the site into a previous tab/page.
+    rootPushBackGuard(true);
 
     if (rootExitScreenIsOpen()) {
         rootHideSafeExitScreen();
-        rearm();
         return;
     }
 
     if (rootViewerIsOpen()) {
         rootLastBackAttempt = 0;
         if (typeof closeViewer === 'function') closeViewer();
-        rearm();
         return;
     }
 
@@ -7057,7 +7035,6 @@ function rootMobileBackHandler() {
             if (typeof hideOverlay === 'function') hideOverlay(modal);
             else modal.style.display = 'none';
         }
-        rearm();
         return;
     }
 
@@ -7065,35 +7042,22 @@ function rootMobileBackHandler() {
         rootPricingIsOpen()) {
         rootLastBackAttempt = 0;
         if (typeof showProducts === 'function') showProducts();
-        rearm();
         return;
     }
 
     const now = Date.now();
     if (rootLastBackAttempt &&
         now - rootLastBackAttempt <= ROOT_BACK_DOUBLE_MS) {
-
         rootLastBackAttempt = 0;
-
-        if (rootCanReturnToEarlierTabPage()) {
-            // The first Back moved from our guard to the real site
-            // entry. One more Back reaches the genuinely previous page,
-            // without closing the browser tab.
-            rootAllowHistoryExit = true;
-            history.back();
-            return;
-        }
-
-        // Directly opened tab: there is no earlier page to return to.
-        // Keep this tab in history, rather than letting Android close it.
+        // Soft exit: leave this browser tab and its URL intact.
         rootShowSafeExitScreen();
-        rearm();
         return;
     }
 
     rootLastBackAttempt = now;
-    rootShowBackToast('اضغط رجوع مرة ثانية خلال ثانيتين للخروج');
-    rearm();
+    rootShowBackToast(
+        'اضغط رجوع مرة ثانية خلال ثانيتين للخروج من العرض'
+    );
 }
 
 function rootInitMobileBackGuard() {
@@ -7103,28 +7067,33 @@ function rootInitMobileBackGuard() {
         rootMobileGuardInitialized = true;
         window.addEventListener('popstate', rootMobileBackHandler);
 
-        // A restored or activated mobile tab must retain one guard.
-        window.addEventListener('pageshow', () => {
-            if (!rootAllowHistoryExit) rootPushBackGuard();
+        // Android Chrome can skip synthetic history entries created
+        // before user interaction. Prime a guard on the first tap.
+        const prime = () => {
+            if (rootMobileUserPrimed) return;
+            rootMobileUserPrimed = true;
+            rootPushBackGuard(true);
+        };
+
+        document.addEventListener('pointerdown', prime, {
+            capture: true,
+            passive: true
+        });
+        document.addEventListener('keydown', prime, {
+            capture: true,
+            once: true
         });
 
-        document.addEventListener('pointerdown', () => {
-            if (!rootAllowHistoryExit) rootPushBackGuard();
-        }, { passive: true, capture: true });
+        window.addEventListener('pageshow', () => {
+            rootPushBackGuard();
+        });
     }
 
     rootPushBackGuard();
 }
 
-// Register as soon as the end-of-body script executes, not only when
-// all images/audio have finished loading (load may take a long time).
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', rootInitMobileBackGuard, {
-        once: true
-    });
-} else {
-    rootInitMobileBackGuard();
-}
+// Loaded at the end of <body>: install protection immediately.
+rootInitMobileBackGuard();
 
 /* ROOT MOBILE BACK GUARD V14 END */
 
