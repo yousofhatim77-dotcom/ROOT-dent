@@ -3733,10 +3733,10 @@ body.about-view-active #aboutLogoImage {
    ========================================================= */
 @media (min-width: 1025px) {
     #pricingScrollContainer {
-        width: min(100%, 1080px);
-        max-width: 1080px;
+        width: min(100%, 940px) !important;
+        max-width: 940px !important;
         margin-inline: auto;
-        padding-inline: 28px;
+        padding-inline: 18px;
     }
 
     #pricingScrollWrapper {
