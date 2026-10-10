@@ -245,40 +245,61 @@ video {
 }
 
 @media (max-width: 700px) {
-    /* The original moving logo remains at the top edge. */
+    /* The buttons now sit at the TOP, between the two logo positions. */
     .root-floating-nav {
-        top: 85px;
-        max-width: calc(100vw - 20px);
-    }
-
-    .root-floating-nav .nav-buttons {
-        gap: 3px;
-        padding: 5px;
-    }
-
-    .root-floating-nav .nav-btn {
-        min-height: 41px;
-        padding: 0 11px;
-        gap: 6px;
-        font-size: .77rem;
-        font-weight: 700;
-    }
-
-    .root-floating-nav .nav-btn::before {
-        font-size: .84rem;
-    }
-}
-
-@media (max-width: 360px) {
-    .root-floating-nav .nav-btn {
-        padding-inline: 8px;
-        gap: 5px;
-        font-size: .73rem;
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        width: min(340px, calc(100vw - 154px));
+        max-width: none;
     }
 
     .root-floating-nav .nav-buttons {
         gap: 2px;
         padding: 4px;
+    }
+
+    .root-floating-nav .nav-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 38px;
+        padding: 0 3px;
+        gap: 0;
+        font-size: clamp(.64rem, 2.8vw, .76rem);
+        font-weight: 700;
+    }
+
+    .root-floating-nav #navPricingBtn {
+        flex-grow: 1.47;
+    }
+
+    .root-floating-nav #navAboutBtn {
+        flex-grow: .87;
+    }
+
+    .root-floating-nav #navProductsBtn {
+        flex-grow: 1.05;
+    }
+
+    .root-floating-nav .nav-btn::before {
+        display: none;
+    }
+
+    .lab-logo-corner.position-left {
+        left: 6px;
+    }
+
+    .lab-logo-corner.position-right {
+        right: 6px;
+    }
+}
+
+@media (max-width: 400px) {
+    .root-floating-nav {
+        width: calc(100vw - 136px);
+    }
+
+    .root-floating-nav .nav-btn {
+        padding-inline: 2px;
+        font-size: clamp(.59rem, 2.8vw, .7rem);
     }
 }
 
@@ -4015,14 +4036,14 @@ body.about-view-active #aboutLogoImage {
 
 @media (max-width: 700px) {
     .main-content {
-        padding-top: 158px;
+        padding-top: 110px;
     }
 
     #pricingScrollContainer {
-        height: calc(100vh - 205px);
-        height: calc(100dvh - 205px);
-        max-height: calc(100vh - 205px);
-        max-height: calc(100dvh - 205px);
+        height: calc(100vh - 155px);
+        height: calc(100dvh - 155px);
+        max-height: calc(100vh - 155px);
+        max-height: calc(100dvh - 155px);
     }
 }
 
@@ -4031,4 +4052,79 @@ body.about-view-active #aboutLogoImage {
         min-height: 220px;
         height: auto;
     }
+}
+
+
+/* In-tab exit state for directly opened mobile pages: never close the tab. */
+.root-safe-exit-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 60000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    background: rgba(3, 11, 25, .96);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+.root-safe-exit-screen[hidden] {
+    display: none !important;
+}
+.root-safe-exit-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: min(390px, 100%);
+    padding: 36px 25px;
+    text-align: center;
+    border: 1px solid rgba(115, 183, 248, .3);
+    border-radius: 24px;
+    background: linear-gradient(145deg, #102846, #061328);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, .55);
+}
+.root-safe-exit-icon {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border: 1px solid rgba(114, 194, 255, .36);
+    border-radius: 50%;
+    color: #8bc9ff;
+    background: rgba(42, 119, 203, .12);
+    font-size: 1.55rem;
+}
+.root-safe-exit-card strong {
+    color: #88c7ff;
+    font-size: .85rem;
+}
+.root-safe-exit-card h2 {
+    color: #fff;
+    font-size: 1.2rem;
+}
+.root-safe-exit-card p {
+    color: #b1cae4;
+    font-size: .9rem;
+    line-height: 1.8;
+}
+.root-safe-exit-card button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    margin-top: 10px;
+    padding: 0 26px;
+    border: 1px solid rgba(123, 202, 255, .4);
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(130deg, #2588e5, #1155b1);
+    font-size: .89rem;
+    font-weight: 700;
+}
+.root-safe-exit-card button:focus-visible {
+    outline: 2px solid #9ddaff;
+    outline-offset: 3px;
 }
