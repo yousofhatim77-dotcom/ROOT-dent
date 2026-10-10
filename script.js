@@ -4680,6 +4680,13 @@ function activateNav(
     activeButton
 ) {
 
+    // Pricing uses a fixed viewport frame, while the other tabs
+    // retain their original document layouts.
+    document.body.classList.toggle(
+        'pricing-view-active',
+        activeButton?.id === 'navPricingBtn'
+    );
+
     document
         .querySelectorAll(
             '.nav-btn'
