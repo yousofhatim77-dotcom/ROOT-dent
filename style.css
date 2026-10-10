@@ -3727,21 +3727,253 @@ body.about-view-active #aboutLogoImage {
 
 /* ROOT SPEECH RHYTHM STYLE V16 END */
 
-/* Narration replay only appears when automatic speech fails. */
-.root-narrator-retry {
-    display: inline-flex;
-    align-items: center;
-    margin-top: 9px;
-    padding: 6px 11px;
-    color: #fff;
-    background: rgba(37, 115, 197, .28);
-    border: 1px solid rgba(145, 200, 255, .52);
-    border-radius: 20px;
-    cursor: pointer;
-    font: inherit;
-    font-size: .78rem;
-    line-height: 1.4;
+
+/* =========================================================
+   ROOT DESKTOP PRICE CATALOG MARGINS V21
+   ========================================================= */
+@media (min-width: 1025px) {
+    #pricingScrollContainer {
+        width: min(100%, 1080px);
+        max-width: 1080px;
+        margin-inline: auto;
+        padding-inline: 28px;
+    }
+
+    #pricingScrollWrapper {
+        width: 100%;
+    }
+
+    #pricingScrollTrack {
+        width: 100%;
+    }
+
+    #pricingScrollTrack .pricing-page-image {
+        box-shadow: 0 0 0 1px rgba(82, 154, 221, .18);
+    }
 }
-.root-narrator-retry[hidden] {
-    display: none !important;
+
+/* =========================================================
+   ROOT PREMIUM CONTACT POPOVER V21
+   ========================================================= */
+.root-contact-widget {
+    position: fixed;
+    inset: auto 24px calc(22px + env(safe-area-inset-bottom, 0px)) auto;
+    z-index: 18000;
+    font-family: inherit;
+}
+
+.root-contact-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-width: 58px;
+    min-height: 58px;
+    padding: 0 18px;
+    color: #fff;
+    background: linear-gradient(145deg, #1874d5, #0a3970);
+    border: 1px solid rgba(122, 195, 255, .65);
+    border-radius: 999px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, .48),
+        0 0 22px rgba(28, 126, 222, .16);
+    font-weight: 700;
+    font-size: .88rem;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.root-contact-trigger > i {
+    font-size: 1.24rem;
+}
+
+.root-contact-trigger:hover,
+.root-contact-widget.is-open .root-contact-trigger {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 38px rgba(0, 0, 0, .55),
+        0 0 27px rgba(42, 143, 251, .35);
+}
+
+.root-contact-panel {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 14px);
+    width: min(365px, calc(100vw - 32px));
+    overflow: hidden;
+    border-radius: 22px;
+    border: 1px solid rgba(91, 169, 239, .38);
+    background: linear-gradient(150deg, rgba(16, 42, 80, .98), rgba(5, 17, 37, .99));
+    box-shadow: 0 22px 70px rgba(0, 0, 0, .65),
+        inset 0 1px 0 rgba(182, 224, 255, .12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(12px) scale(.97);
+    transform-origin: bottom right;
+    transition: opacity .2s ease, visibility .2s ease, transform .2s ease;
+}
+
+.root-contact-widget.is-open .root-contact-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.root-contact-panel-header {
+    position: relative;
+    padding: 21px 22px 18px;
+    text-align: right;
+    background: linear-gradient(100deg, rgba(33, 119, 206, .17), rgba(10, 27, 58, .35));
+    border-bottom: 1px solid rgba(112, 176, 238, .12);
+}
+
+.root-contact-eyebrow {
+    color: #73b8ff;
+    font-size: .77rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.root-contact-panel-header h2 {
+    color: #f3f8ff;
+    font-size: 1.18rem;
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.root-contact-panel-header p {
+    margin-top: 7px;
+    color: #9db9db;
+    font-size: .81rem;
+}
+
+.root-contact-close {
+    position: absolute;
+    top: 14px;
+    left: 15px;
+    display: grid;
+    place-items: center;
+    width: 33px;
+    height: 33px;
+    background: rgba(105, 155, 215, .12);
+    color: #d0e7ff;
+    border: 1px solid rgba(132, 184, 240, .23);
+    border-radius: 50%;
+}
+
+.root-contact-methods {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+}
+
+.root-contact-method {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 70px;
+    padding: 11px 12px;
+    color: #eaf4ff;
+    background: rgba(74, 135, 204, .075);
+    border: 1px solid rgba(110, 171, 238, .13);
+    border-radius: 14px;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.root-contact-method:hover,
+.root-contact-method:focus-visible {
+    background: rgba(35, 112, 200, .23);
+    border-color: rgba(111, 190, 255, .5);
+    transform: translateY(-1px);
+}
+
+.root-contact-method-icon {
+    display: grid;
+    flex: 0 0 43px;
+    place-items: center;
+    width: 43px;
+    height: 43px;
+    border-radius: 13px;
+    color: #9bcdfb;
+    background: rgba(48, 132, 220, .14);
+    font-size: 1.25rem;
+}
+
+.root-contact-method-icon.root-contact-whatsapp {
+    color: #69e49d;
+    background: rgba(37, 211, 102, .10);
+}
+
+.root-contact-method-icon.root-contact-facebook {
+    color: #8eb6ff;
+    background: rgba(24, 119, 242, .14);
+}
+
+.root-contact-method-info {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+}
+
+.root-contact-method-info strong {
+    font-size: .88rem;
+    font-weight: 700;
+}
+
+.root-contact-method-info small {
+    color: #9cb9dc;
+    direction: auto;
+    font-size: .78rem;
+    font-weight: 500;
+}
+
+.root-contact-method-arrow {
+    flex: 0 0 auto;
+    color: #7396bf;
+    font-size: .78rem;
+    opacity: .72;
+}
+
+.root-contact-trigger:focus-visible,
+.root-contact-close:focus-visible,
+.root-contact-method:focus-visible {
+    outline: 2px solid #7ac3ff;
+    outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+    .root-contact-widget {
+        right: 15px;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .root-contact-trigger {
+        width: 57px;
+        min-width: 57px;
+        height: 57px;
+        min-height: 57px;
+        padding: 0;
+        border-radius: 50%;
+    }
+
+    .root-contact-trigger-label {
+        display: none;
+    }
+
+    .root-contact-panel {
+        max-height: min(76dvh, 520px);
+        overflow-y: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .root-contact-trigger,
+    .root-contact-panel,
+    .root-contact-method {
+        transition: none;
+    }
 }
